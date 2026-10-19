@@ -1,92 +1,143 @@
 # Production/Business Analyst — Round 1
 
-## 1. No scope boundary between "the game" and "the eight-week deliverable" — BLOCKING
+## 1. The eight-week deliverable is larger than the document's own production budget — BLOCKING
 
-**Problem.** The design describes a full commercial campaign, but the only production timeline is an eight-week course run by a solo developer. The document never says what already exists, what the eight weeks will deliver, or what gets cut if time runs short. Without that, nobody can judge feasibility or set priorities.
+**Problem.** The course target is "a full singleplayer campaign playthrough, from the opening escape through the final assault and ending" (Technical Strategy, Production foundation). The campaign tables list these authored story operations: Act I has 4 (Breakout, A Place to Stand, Dead Air, Sever the Ring). Act II has Follow the Freight and Hold What We Took. Act III has 4 (Keep the Crossing, Silence the Guns, Empty Their Shelves, Break the Line). Act IV has 4 (Under the Wall, Keys to the Giants, Break the Bastion, Their Last Order). On top of these are **four mutually exclusive choice pairs, which is 8 more missions**. Both sides of every pair have to be built, even though a single playthrough only sees one. That makes about **22 authored missions**. Act IV is also described as "four parts" with allied NPC squads, which may add more.
 
-**Source.** Technical Strategy says "The eight-week course builds on the existing game through playable slices" but never lists what the existing game contains. Meanwhile the content load is large:
-- 9 kits, including the Warmech.
-- 4 acts with about 14 named story operations (lines 344-347).
-- 4 mutually exclusive choice pairs, which add 8 more authored missions (lines 357-360).
-- A procedural side-mission generator.
-- A body-type character creator.
-- Armoury and skins, a memorial, and solo training challenges.
+The token budget allows "two reference cycles per week." Over 8 weeks that is **16 cycles**, and the document says a cycle "can revise an existing mission; it describes an iteration budget." So the plan gives fewer than one cycle per mission before counting any rework. It also has no capacity for:
+- generated side missions
+- rescue missions for captured operators
+- headquarters solo challenges
+- Act IV cinematics
 
-The token budget pays for about 2 "reference production cycles" a week, so about 16 over the course. The document also says "A cycle can revise an existing mission; it describes an iteration budget", so those 16 cycles are not 16 new missions. 16 cycles cannot build or finish a campaign of about 22 authored missions, plus side-mission blocks, plus everything else.
+**Source.** "eight-week course deliverable is a full singleplayer campaign playthrough"; the Campaign arc and Mission choices tables; the Token budget section ("Two reference cycles per week...").
 
-**Omission.** There is no MVP or vertical-slice definition, no priority-ordered feature list, no "must / should / won't" table, and no inventory of existing work.
+**Omission.** There is no mission count, no milestone schedule, no vertical-slice gate, and no list of missions that could be cut. The only cut list covers kits.
 
-## 2. The character creator works against the document's own top production risk — MAJOR
+## 2. The cut list removes features the design depends on and keeps the decorative ones — MAJOR
 
-**Problem.** The document names art production as "the largest technical constraint" for a solo developer. It then commits to one of the most art-expensive features in the genre, and that feature is decorative by the document's own description.
+**Problem.** "Kits to cut if needed: Warmech, Medic, and Captain." Two of these are tied into the campaign:
+- The choice **"Bring Them Home or Chain of Command"** exists to "restore a medical team or recover a field commander, opening the corresponding support kit," meaning the Medic and the Captain. If both kits are cut, that choice has nothing to offer. "Affected missions remain playable" does not fix that.
+- The Warmech is how "Keys to the Giants" ("take heavy equipment") pays off in Act IV, which is the campaign's climax.
+- The Captain's Field Orders and the Medic's Rescue are the examples the document itself uses to show that training changes plans.
 
-**Source.** Appearance and personal identity says "Players can choose body type and height, face, skin tone, eye color, hair, outfit pieces, and available skins. Equipment and clothing fit across the body options. Kit equipment can add distinctive worn pieces, including a helmet whose visibility the player can control." The same section says "Its choices are independent of combat effectiveness."
+Meanwhile, these lower-value features are not on any cut list:
+- the full character creator (body type, height, face, skin, eyes, hair, outfit pieces, skins, helmet toggle, and "equipment and clothing fit across the body options")
+- skin purchases in the Armoury
+- achievement-unlocked skins
+- operator achievements and ranks
+- the memorial
+- the headquarters training space with solo challenges
+- the hook for a "possible DLC continuation"
 
-Cost: every outfit, kit piece, and helmet has to be fitted, rigged, and checked against every body type and height, in portraits, the HQ lineup, and close action shots (line 252). That multiplies the art work that Biggest Technical Constraint (line 591) says is already the bottleneck.
+The document names art as "the largest technical constraint." Even so, the body-variant clothing-fit requirement is one of the most expensive art tasks in the document, and the only scoping is "a slim assortment."
 
-**Assessment.** The "squad with an identity" pillar is load-bearing. The full creator is not: callsigns, a small set of presets, mission history, and the memorial would deliver most of the attachment for a fraction of the cost. The document never weighs this trade-off.
+**Source.** The course delivery target table; the Mission choices table; Appearance and personal identity; Operator achievements and ranks; Headquarters; Act IV and the final assault.
 
-## 3. Branching choices and procedural side missions add a lot of work to build and test that most players never see — MAJOR
+## 3. Procedural side missions and the capture/rescue loop are a second game inside the first — MAJOR
 
-**Problem.** Two structural features add authoring and testing work without adding much to a single playthrough. The document does not count that cost, and it does not resolve how generated missions get checked.
+**Problem.** The document admits that story progression alone "is intended to outfit a standard squad." So side missions are optional breadth ("spare equipment, a larger working roster, and alternative builds"). They still require a lot of separate systems:
+- a block-based mission generator with seed sweeps
+- four side-mission types plus modifiers
+- random equipment reward tables
+- a 45% capture roll on wipe
+- captive tracking
+- "later optional rescue missions" as new operations
 
-- **Branching.** The four choice pairs (lines 355-360) mean each player sees only half of 8 authored missions. Two pairs also lock out kits: "Bring Them Home or Chain of Command ... opening the corresponding support kit" (Medic or Captain), and "Long Reach or Heavy Hands" (precision or heavy weapons). So all 9 kits must be balanced, taught, and supported, even though any one campaign uses only a subset. Later story missions must also work for every combination of branches. The document never says how many branch combinations later missions must be tested against.
-- **Generated side missions.** Lines 326-328 call for a runtime system that assembles authored blocks. Lines 406 and 412 make side missions load-bearing for the economy ("Side missions support spare equipment, a larger working roster"), so they cannot simply be cut. Line 531 also claims "Development agents produce those building blocks and check the resulting missions before they reach the player." If assembly happens at runtime, agents cannot check each generated result. The QA model is never specified: seeded pre-validation, constraint rules, or a fixed curated pool.
+The document never decides whether this layer is core, a stretch goal, or cuttable. It is the most XCOM-like part of the design, but it is not needed for the stated deliverable. It also competes with the authored missions for the same Level Designer and Level Builder capacity.
 
-## 4. No market positioning, competitors, or commercial frame — MAJOR
+**Source.** Authored and generated operations; Mission outcomes; Credits and equipment ownership; Existing verification workflow ("generated-mission seed sweeps").
 
-**Problem.** The document claims a "distinctive appeal" (line 48) but never places it against the market. Its main hook is "Valid attacks hit, with damage varying within a visible range". In 2026, that sits in a crowded field of tactics games that have already moved away from hit-chance RNG or reworked it: Gears Tactics, Mario + Rabbids, Into the Breach, Marvel's Midnight Suns. The setup of an elite outnumbered squad, a resistance HQ, a war table, and a roster with permadeath-style loss and a memorial lines up closely with the XCOM 2 template. The document gives no reason a player would choose this over those titles.
+## 4. Market position, audience, and product purpose are not defined — MAJOR
 
-**Omission.**
-- No comparable titles.
-- No price point or business model. The Armoury sells "available skins", and line 408 says skins are "bought where available". It is unclear whether that means in-game credits only or real money.
-- No storefront or platform plan beyond "Windows and macOS".
-- No expected campaign length or session length.
-- No statement of whether a commercial release is a goal at all, or whether this is coursework only.
+**Problem.** The document places itself in a crowded genre (turn-based squad tactics on PC and Mac) but never names a competitor or a reference title. Its main differentiator, "valid clear shots within optimal range are guaranteed hits," is clearly a response to the hit-chance frustration of XCOM-style games. The document never makes that argument, so it is unclear whether this is the selling point.
 
-The audience statement (line 46: players who "enjoy planning coordinated turns, experimenting with squad composition, and developing recognizable characters") describes every squad-tactics fan. It does not separate this game's audience from XCOM's.
+The audience description ("enjoys planning coordinated turns...") fits every game in the genre. It gives no target session length, difficulty modes, Ironman or permadeath options, price point, or player profile. Two choices in particular need their audience stated:
+- The document says "This is war. You will lose good people," yet a story-mission wipe rewinds the player to before the attempt.
+- A 45% capture roll replaces outright death on side missions.
 
-## 5. The document is two documents for two audiences — MINOR
+It is also unclear what kind of product this is. It is an "eight-week course deliverable" with alpha-quality cinematics and VO, but it also has a paid-skin Armoury and a "possible DLC continuation." A commercial roadmap and a coursework scope pull priorities in opposite directions, and the document never says which one wins.
 
-**Problem.** Sections 1-6 are a player-facing game design. Sections 7-8 (AI Architecture and Technical Strategy) are a production-pipeline proposal for a course about AI agents, with token budgets, JSON manifests, and API rate limits. The executive summary and pillars never mention the pipeline, and the pipeline sections only loosely trace their deliverables back to the pillars. A reader cannot tell which is the primary deliverable being judged: the game, or the agent workflow that produces it.
+**Source.** Executive Summary (audience and distinctive-appeal paragraphs); the Attacks and damage section; the Mission outcomes table; the Armoury; Victory/DLC; the course delivery target.
 
-**Related omission.** The Balance and Testing agents are expected to report "before-and-after observations from the relevant gameplay scenario" and "reproduction steps with evidence", but the document never says how an agent plays or exercises a turn-based Unity build. There is no test harness, scripted scenario runner, or headless simulation. Those two roles carry the quality promise of the whole pipeline.
+## 5. The production readiness claim is asserted, not shown — MINOR
 
-**Recommendation.** Add a one-paragraph framing up front that says what is being delivered and to whom. Then link each agent role to the specific pillar and mission content it serves in the eight-week window.
+**Problem.** The document says "the level-building system is complete, tested, and approved" and that "the critical path... is established." The same document then says token estimates will be refined by "actual usage from the first cycles." If the pipeline were already proven, those measurements would exist and would back up the 160,000-token level-build figure. The plan's feasibility depends on this claim, but the document gives no evidence: no count of shipped levels, no measured cycle time, and no measured per-mission cost.
+
+Similarly, the Act characters are described only as archetypes ("a gruff man who dislikes the player"), with no names. Yet voiceover and cinematics for them are scheduled deliverables. Content that has not been written yet is being budgeted as if it were ready to produce.
+
+**Source.** Production foundation and course scope; Token budget; Act characters.
 
 ## Round 2 — Cross-examination
 
-### CONFLICTS
+### Conflicts
 
-**C1. Feasibility Lead #5 rates customization MINOR. I hold MAJOR.**
-The Feasibility Lead and I agree on the mechanism: gear from mixed vendors has to fit every body type and height, and it has to survive close action-camera framing. They then rate it MINOR, which I think is wrong for two reasons. First, the document names art as "the largest technical constraint". A feature that multiplies the cost of the stated bottleneck cannot be minor by the document's own logic. Second, their own Finding #1 lists customization as one of the items with unknown build status. If the creator is not already built, it is one of the few features that is both expensive and, by the GDD's own words ("independent of combat effectiveness"), not tied to any system. That makes it the cleanest cut on the board. Their suggested cut (one body type, swappable outfits) is the right one. The severity should match the size of the saving.
+**C1. The Psychologist's fixes for the loss model add scope the deliverable cannot carry, and the Systems Designer's fixes pull the other way. Both are an audience decision that has not been made (Psychologist #1, Systems Designer #1, QA #2).**
 
-**C2. Feasibility Lead #1 proposes "Act 1 plus one side-mission type" as the week-8 target. I disagree with the second half.**
-We agree on the BLOCKING finding. But putting a side-mission type in the first slice means building the generator, its block library, and seed persistence before the authored campaign exists, and Feasibility #2 shows that the generator has no validation path. For an eight-week slice, the generator is the item with the most new tooling and the least effect on the pillars. A better target is Act 1 authored missions plus the HQ loop through menus. Side missions should come later, and start as a small fixed pool of hand-checked layouts. I am now partly reversing my own Round 1 wording: I said side missions "cannot simply be cut" because the economy depends on them. That is true for the finished game, not for the slice.
+Three reviewers rate the loss model BLOCKING, and I agree the logic is broken. The proposed fixes conflict, though:
+- The Psychologist recommends "difficulty and save options" plus a roster floor. Those are forgiving fixes.
+- The Systems Designer recommends that "story wipes carry a real carry-over cost." That is a punishing fix.
 
-**C3. Systems Designer #2 and Adversarial QA #3 both ask for limits on side-mission availability. That undercuts the business case for building a generator at all.**
-Both reviewers are right that unlimited side missions allow farming. Their fix is a ceiling: limit or stop refilling the side-mission pool. But if the pool is capped at a small number per act, the reason to build a runtime procedural generator mostly goes away. A fixed list of authored or pre-baked side missions gives the same player experience for much less engineering and QA. So their balance fix and my scope concern point the same way, but the document has to choose: either the generator is a replay engine with an uncapped economy (which the Systems Designer shows is broken), or the pool is capped and the generator is overbuilt. It cannot be both.
+Difficulty modes are a new feature. Each mode adds a balance pass that the Balance Agent would have to run inside a 16-cycle budget that already cannot cover the missions (my #1, Feasibility #1). I oppose adding modes for the course build.
 
-**C4. Narrative Critic #1, #3 and #5 and Player Psychologist #4 each call for added content. Each addition increases scope I already rate BLOCKING.**
-The fixes they propose are: named characters on both sides; missions that use the insider-resistance premise; later briefings that acknowledge the branch not taken; and choice-screen previews or trials of locked kits. Each is reasonable on its own. Together they add authored writing, voiced lines (through the Voiceover Agent with fixed speaker identities), and UI that the eight-week budget cannot cover. I am not arguing that their findings are wrong. I am arguing that the cheapest fix for most of them is subtraction. Narrative #5 and Psychologist #4 both get resolved, and so does Systems #4, if the four choice pairs stop locking kits and become reward or story variants. Adding acknowledgment and previews on top of the lockouts is the expensive fix.
+The real gap is the one in my #4. The document never says how much punishment its audience will accept, so every reviewer is picking a different player to design for. My position: pick one rule and ship one mode. The cheapest coherent option is to make a costly story-mission extraction rewindable the same way a wipe already is (the Systems Designer's "checkpoint the player chooses"). That reuses the existing rewind code path, removes the incentive to wipe deliberately, and adds no new system. Ironman and permadeath can be a post-course stretch goal.
 
-### CONNECTIONS
+**C2. Nobody objected to cutting cosmetics, but the Systems Designer's economy finding weakens part of my cut recommendation (Systems Designer #3 vs. my #2).**
 
-**X1. The wipe exploit sinks the one market differentiator the document could claim.**
-Systems #1, Psychologist #1, and QA #1 all find that a full-squad wipe costs less than losing one operator. In market terms, the closest competitor (XCOM 2) is defined by meaningful permanent loss, often with an ironman mode. My Finding #4 said the GDD offers no reason to pick this game over XCOM. The pitch line "bring your operators home", plus the explicit leave-behind decision, was the closest thing to a hook. With the wipe exploit and no save rules (Psychologist #1), that hook is gone: the game plays like XCOM with savescumming built in. Fixing the failure rule is a design matter, but it also decides whether the game has a pitch.
+The Systems Designer notes that "credits have almost no sink besides extra copies and cosmetics." I proposed cutting Armoury skin purchases. If they go, credits lose their last late-game use even sooner.
 
-**X2. Narrative Critic #1 points to the positioning I said was missing.**
-The insider resistance, built "from the Directorate's own logistics organization", is the only idea in the document that no listed competitor has. Missions where the squad uses inside knowledge (forged orders, known patrol schedules, supply-chain sabotage) would separate the game from the "outnumbered elite squad" template. They could also justify a distinct mechanic. The document uses this idea only in the setting paragraph. That changes my Finding #4 from "no differentiator exists" to "a differentiator exists and is not used".
+I am keeping the recommendation. The finding shows that the credit economy itself is under-motivated in this scope, and adding a decorative sink to rescue a currency the deliverable does not need is the wrong fix. For the course build, credits should either buy equipment copies and nothing else, or be folded into story-granted and side-mission-granted equipment entirely. Skins can return when the commercial roadmap (DLC, paid skins) becomes real. My concession is that this cut and the economy table are one decision, not two.
 
-**X3. Every reviewer's rule gaps land on a test harness that does not exist.**
-QA #5 (objective and NPC failure states), QA #4 (AP loops), Systems #4 (16 branch paths), Feasibility #2 (generator validation), and Feasibility #3 ("playable-path checks") all assume an agent or script can run a turn-based scenario and report the result. My Round 1 Finding #5 noted that no harness is specified. Combined with those findings, it is clear the whole QA promise of Sections 7-8 depends on that one missing piece of tooling.
+**C3. The Psychologist rates the cut-list and choice collision MINOR; I disagree (Psychologist #5).**
 
-**X4. Psychologist #3 (onboarding overload in mission 2) is also a scope problem.**
-The second mission opens the whole physical HQ: Barracks, Armoury, War Table, training, appearance. Those are the features with the most uncertain build status (Feasibility #1). Opening HQ functions in stages over Act 1 would help new players, and it would also let the slice ship with fewer HQ functions finished. The same change fixes both problems.
+Five of six reviewers independently flagged "Kits to cut if needed: Warmech, Medic, and Captain" against "Bring Them Home or Chain of Command" and Keys to the Giants. That is the strongest agreement on the board. It is MAJOR because it is a planning error baked into the only cut list the document has. It is also the cheapest fix on the board, since it is a document decision and not a build task. The Moderator should list it as a quick win, not downgrade it.
 
-### REVISIONS
+### Connections
 
-- **Finding #1 (BLOCKING): keep, and widen it.** Feasibility #1 adds a point I missed: the plan budgets tokens but never Jim's own review time, and that is the real throughput limit at two cycles a week. I adopt it.
-- **Finding #3: reframe, keep MAJOR.** I called branching content "most players never see". Systems #4 and Psychologist #4 show it is worse than that: the kit lockouts change the difficulty curve on every path, including removing ranged revive, which is central to the loss system. The cost is not only unseen content; it is a balance matrix of 16 paths. The generated-missions half overlaps with Feasibility #2. I defer to their technical framing and keep only the cost and business-case point (see C3).
-- **Finding #4: keep MAJOR, change the recommendation.** See X1 and X2. The fix is to commit to the insider-resistance premise as the hook, and to fix the failure rule so that the loss pillar is credible against XCOM.
-- **Finding #5: split it.** The "two documents" framing stays MINOR. The missing test harness moves up to MAJOR, because X3 shows that five findings from three other reviewers cannot be checked without it.
+**X1. Side missions are not cleanly cuttable, because they are the only recovery valve for roster loss (my #3 + QA #1, Psychologist #1, Systems Designer #2).**
+
+I called the side-mission layer "a second game" that could be a stretch goal. Combined with the softlock findings, that recommendation is dangerous as written. The document's only recovery path after story losses is "complete available side missions." Side missions are also the main source of "a larger working roster" and of credits. Cutting them outright makes the softlock QA describes worse, not better.
+
+The production answer is a **minimum side-mission layer**:
+- one or two job types
+- no modifiers
+- no capture roll or rescue missions (abandoned operators are simply lost, or return wounded)
+- a guaranteed replacement-recruit rule
+
+Separately, the line "Authored blocks can also enter the library used for generated side missions" (Technical Strategy) means the block content is partly paid for by story missions. The expensive part is code: the generator, reward tables, and captive tracking. That leads to X2.
+
+**X2. Feasibility #2 (no owner for gameplay code) turns my readiness finding into a schedule hole.**
+
+My #5 noted that "complete, tested, and approved" covers only the level pipeline. The Feasibility Lead shows that no agent or budget line covers gameplay C#: AI, Overwatch and Suppression, the generator, the character creator, persistence, and cinematics.
+
+Together these findings mean every feature I listed as decorative in #2 and #3 is also unowned engineering work, not just art. The cut list therefore has to be ordered by engineering cost as well as art cost. On that ordering, the following are the first cuts:
+- the character creator's body and height variants
+- achievements, ranks, and the memorial
+- the training-space solo challenges
+- capture and rescue
+
+**X3. The player-identity decision decides whether the character creator is load-bearing (Narrative #2, Psychologist #4 + my #2, Feasibility #5).**
+
+If the Breakout prisoner is a persistent avatar, a creator is part of the identity promise and should be kept in reduced form (two body types, no height slider, per Feasibility #5). If the player is an off-screen commander, the creator is pure decoration, and presets with editable callsigns are enough. Either way, the document is paying for the most expensive version of a feature whose purpose has not been decided. The identity question is narrative, but its answer is a scope decision.
+
+**X4. The narrative fixes have no budget, and the finale is scheduled last (Narrative #1 and #4, Feasibility #4, QA #4 + my #1).**
+
+The Narrative Critic is right that the sacrifice choice needs named, sustained characters and visible reactions to choices. Each of those is VO, writing, and possibly cinematics. Voiceover is budgeted per mission cycle. Character presence between missions (HQ, War Table) and branch-dependent reaction lines are not.
+
+Their Last Order is also the mission with the most undefined systems: 8 friendly units, NPC Downed rules, scripted deaths, and DLC save fields. It depends on all four Act characters and comes last in the schedule. A campaign where the final mission is both the riskiest and the latest has no vertical-slice gate, which is the omission I flagged in #1.
+
+My recommendations:
+- Build a cut-down Their Last Order early, as the vertical slice.
+- Deliver character continuity through cheap channels (War Table briefings and HQ lines) rather than cinematics.
+
+**X5. The DLC hook damages the course ending (Narrative #4 + my #4).**
+
+The Narrative Critic notes that the finale's only major branching decision is "record[ed]" for "a possible DLC continuation" and has no in-game payoff. The deliverable is defined as a playthrough "through the final assault and ending." Deferring the climax's consequence to a product that does not exist trades the course grade for a commercial hope. This is the clearest example of the coursework-vs-commercial tension in my #4. The fix is cheap: an epilogue card or War Table beat that acknowledges the choice.
+
+### Revisions
+
+- **#1 (mission count): keep BLOCKING, and narrow the count.** The Act II row lists "rescue and weapons choices" as its representative operations, and some later choice pairs may map onto named Act III or IV missions, as Feasibility #1 also allows. The defensible figure is **18-22 authored missions**, not 22. Even at the low end, 16 cycles cannot cover it, and the Feasibility Lead independently reaches the same conclusion. Also, "representative operations" suggests the list may not be exhaustive, so the count could be higher.
+- **#3 (side missions): keep MAJOR, and change the recommendation** from "decide whether to cut" to "define a minimum layer," per X1. I withdraw the implication that the layer is cleanly decorative.
+- **#4 (market and audience): split it.** The competitor, price, and reference-title points drop to **MINOR** for a coursework deliverable. The audience punishment-tolerance point rises to **MAJOR, close to BLOCKING**, because it is the root decision behind the three BLOCKING loss-model findings (C1). The commercial-vs-coursework conflict stays MAJOR via X5.
+- **#5 (readiness): upgrade MINOR to MAJOR.** Combined with Feasibility #2, the unproven readiness claim covers all gameplay code, not only the token estimates, so the plan's feasibility cannot be judged until a system status table exists.
+- **#2 (cut list): unchanged at MAJOR.** I concede C2 (the skins cut must be decided together with the economy), and X2 and X3 add an engineering-cost ordering and an identity dependency to the cut list.

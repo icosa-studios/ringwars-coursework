@@ -1,90 +1,147 @@
 # Systems Designer — Round 1
 
-Scope: core loop, progression, pacing across the campaign, difficulty curve, economy math. Line references are to `gdd.txt`.
+Scope: core loop, progression structure, campaign pacing, difficulty curve, resource and economy math.
 
 ---
 
-## 1. Failing the mission costs less than losing one operator, so the main stakes can be bypassed. **BLOCKING**
+## 1. The loss rules reward failing on purpose (wiping beats a costly win)
 
-**Source:** L308: "Any operator still outside the zone, including a Downed operator, is lost when the *successful* extraction concludes." L312: "If the whole squad is Downed, the mission fails. The operation remains available for another attempt." L326: "Each offered mission retains its setup across retries."
+**Severity: BLOCKING**
 
-**Problem:** Permanent loss only happens on a *successful* extraction. A full-squad wipe is a failure, and failure has no stated cost: no operator loss, no campaign clock, no lost reward, no changed setup. Suppose one operator goes Downed and can't be reached. The best play is to let the other three go Downed too. That fails the mission, keeps all four operators and lets the player replay the same map with full knowledge of it. This undercuts the pitch ("bring your operators home", L7), the "Recruitment and loss" section (L254-258) and the memorial. The document also never says whether XP, credits or gear used on a failed attempt are kept or lost. That needs to be specified before the exploit can be scored.
+**Source:** Mission outcomes table (lines 324-327) and Extraction rules (line 314).
 
-**Needed:** A failure cost that is at least as bad as losing one operator (for example, Downed operators are captured or lost on a wipe, or a failed operation closes or escalates), plus a defined result for XP and credits on failure.
+- On a **main story mission**, a full wipe means "Game Over," but "Trying again returns to before the failed attempt, where the player can revise loadouts, change the squad..." Nothing is lost.
+- On the same mission, a **partial success** is permanent. Under line 314, "Any operator still outside the zone, including a Downed operator, is lost when the successful extraction concludes."
 
----
+So when a story mission goes badly (one or two operators Downed and out of reach), the best play is to let the whole squad go down. A wipe gives a free reset. A hard-fought extraction keeps the deaths. The punishment runs backwards: the worse result costs nothing, and the better result costs operators for good. That undercuts the pillar "You will lose good people" (line 70) and the "bring your operators home" premise (line 7). The game has no other source of tension on story missions, because losses are the stakes.
 
-## 2. The economy has no numbers, no stated sinks and no limit on farming. **MAJOR**
+Side missions have the opposite problem. A Downed operator who is abandoned at extraction is **100% lost**. In a full wipe, each operator has a **45% capture** chance and can be rescued later. So the player is pushed to keep a doomed squad in the fight and avoid a partial extraction. The two loss paths were clearly designed separately and were never compared against each other.
 
-**Source:** L402-412 (Credits, Progression pace). L119: "a completed side mission is removed from the current set of offers". L326-328 (generated side missions). The document never says whether time passes between missions or whether the side-mission pool is limited.
-
-**Problem:** Credits and XP have no values. The section gives no rate per mission, no cost per training step, no length for a kit line and no Armoury prices. "A focused operator's development through a kit line by the later campaign" (L412) can't be checked. It doesn't say how many steps a line has or how much XP the story path gives. The structure has a bigger gap. Side missions come from a generator, and the document never says whether the offer list refills or whether anything advances while the player farms. If it refills and nothing advances, side missions become unlimited XP and credits. Then "Story progression is intended to outfit a standard squad" (L405) puts no ceiling on player power, and the authored difficulty curve (L292) can be flattened by grinding. The only credit sinks are extra equipment copies and skins. Those run out once the squad is equipped, so credits lose value in the back half of the campaign.
-
-**Needed:** An economy table (income per mission type, cost per training step, steps per kit line, item prices). A rule for refilling side missions or limiting the pool. A credit sink that stays useful late in the campaign.
-
----
-
-## 3. Nothing carries over between missions, so the roster bench has no systemic job. **MAJOR**
-
-**Source:** L208: "Health recovers between missions." L240: "Gear uses refresh for the next mission." L256: "Recruits receive a training foundation based on story progress." L46 and L68 promise "a bench of specialists" and reasons to keep reserves.
-
-**Problem:** Each mission starts from the same clean state. There's no injury, fatigue, recovery time or partial healing. Being Downed and then revived costs nothing after the mission. The only state that carries forward is permanent loss, and Finding 1 shows how to avoid that. The reasons the document gives for using the bench are mission fit and personal preference. Neither is pressure from the systems. XP is earned by deployed operators ("Mission experience contributes to training", L119), and recruits are brought up to the story baseline. So the strongest strategy is one heavily trained A-team plus a fresh recruit when a specialist kit is needed. Limits on equipment copies (L404) mainly matter across those same four operators. The roster, recruitment and equipment-copy systems sit alongside the core loop without being connected to it.
-
-**Needed:** At least one cost that carries over and forces rotation (for example, recovery time for Downed or heavily damaged operators), or an explicit decision that rotation is cosmetic and the bench exists only for loss recovery.
+**Needed:** One loss model that makes extracting at least as good as wiping in every case. Options:
+- Story-mission retries also roll back after costly wins (a checkpoint the player chooses), or
+- Story wipes carry a real carry-over cost, and
+- On side missions, abandoned Downed operators use the same capture roll as a wipe.
 
 ---
 
-## 4. Some branch choices permanently lock whole kits, but the difficulty curve and teaching content assume all kits exist. **MAJOR**
+## 2. Roster attrition has no floor, and side-mission supply is undefined. The campaign either becomes a grind or a death spiral
 
-**Source:** L360: "Bring Them Home or Chain of Command — Restore a medical team or recover a field commander, *opening the corresponding support kit*." L358: "Long Reach or Heavy Hands — precision weapons or heavy fire support." L107 (the sample mission uses both Sniper and Medic). L206: "Medic training can improve the squad's options, including revival at a distance."
+**Severity: MAJOR**
 
-**Problem:** These choices are exclusive (L353: "closes the other opportunity"). The Medic/Captain branch definitely locks one kit. Long Reach/Heavy Hands appears to lock Sniper or Minigun. The document never says whether a closed kit can come back through side missions or random rewards. L408 limits random rewards to "discovered items", so probably not. Recovering Downed operators is central to whether loss happens. A player who chose Chain of Command has no Medic. That means no ranged Rescue and only medkits for healing, so every later extraction plays a different survival game. The difficulty section (L292) and the authored milestone missions (L346-347) don't say which kit set they're tuned for. They also don't say whether each mission must be beatable on all branch combinations. With 2^4 = 16 possible paths, the Balance Agent (L538) has no defined target.
+**Source:** Recruitment (line 262: "Campaign milestones expand the roster"; line 264: "Recruitment fills available roster space"), Mission outcomes (line 320: "Resolved operations leave the available mission set"), and Return (line 121: "a completed side mission is removed from the current set of offers").
 
-**Needed:** A statement of which kits each branch locks and whether that's permanent. A minimum squad toolset that every path is guaranteed. A balance target for late missions under each branch, at least for the Medic/Captain split.
+Operators are lost permanently or captured. Recruitment happens only at milestones. Rescue missions only "may" exist (line 329). The document never says:
+
+- whether generated side missions **replenish**, how fast, or whether any clock limits them;
+- what happens if the roster falls **below 4** before a story mission that requires a standard squad;
+- whether a lost or captured operator's **equipment** is lost too. This matters because owned copies are a scarce resource (line 427: "making the number of available copies relevant").
+
+Each answer breaks something:
+- If side missions replenish without limit and nothing costs time, XP and credits have no ceiling. The player can grind past every story difficulty step, and "Story progression is intended to outfit a standard squad" (line 428) stops being a real tuning target.
+- If side missions are finite, a run of losses can leave the player short of operators or gear with no recovery path. Story-mission rollback (Finding 1) only restores the state from just before the attempt, and that state is already depleted. The player could have a soft-locked campaign with no way of knowing.
+
+**Needed:** State the side-mission generation rule (count, refresh trigger, expiry), a minimum roster guarantee or emergency recruitment, and the equipment-on-loss rule.
 
 ---
 
-## 5. Mission pressure only starts after the objective, and reinforcement rules aren't defined. **MINOR** (becomes MAJOR if XP is awarded per kill)
+## 3. The economy has no numbers, so the stated pacing goals can't be built or checked
 
-**Source:** L84: "Completing the job often opens extraction and brings sustained reinforcement pressure." L290-292, L306. There are no turn limits, alert states or reinforcement timing anywhere in the document.
+**Severity: MAJOR**
 
-**Problem:** Before the objective, nothing pushes the player to keep moving. Defenders "value [their] assigned position" (L279), and Overwatch triggers on enemies spending AP inside a cone (L185). That makes slow, overwatch-heavy play the low-risk default during the approach, which works against the pacing goal in L332-334. After the objective, "sustained" reinforcements have no stated rate, cap, escalation or end condition. That leaves the extraction difficulty, which is the main test of whether the player "preserved a workable way out", unspecified. If XP or credits come from kills rather than completion (L119 is ambiguous), unlimited reinforcements become a farming source on top of Finding 2.
+**Source:** Progression and economy (lines 403-437), especially Progression pace (line 435: "The story path should support a focused operator's development through a kit line by the later campaign") and Credits (lines 427-431).
 
-**Needed:** Decide whether the approach phase has pressure (alert level, patrol escalation or a soft turn limit). A reinforcement model (trigger, wave size, interval, cap). A clear statement that rewards come from objectives, not kills.
+The section names every currency (XP, credits, equipment copies, skins) and every sink (training steps, Armoury purchases) but gives no amounts. Missing:
+
+- XP per mission, and how it is split. Per deployed operator? Shared? Do Downed or lost operators earn any? How much does an optional objective add?
+- How many steps a kit line has, and what each step costs.
+- Credit income per story and side mission, and equipment prices.
+- How many copies of each item the story grants. Without this, "outfit a standard squad" can't be checked.
+- How recruits' "training foundation based on story progress" (line 262) compares with a veteran's earned XP. This decides whether veterans are actually worth more than fresh recruits (line 437) or whether catch-up flattens the difference.
+
+Without these numbers, nothing defines the difficulty curve, which "grows through enemy composition..." (line 298), relative to player power. The Technical Strategy section claims "content and economy validation" tooling (line 612) and a Balance Agent with before-and-after observations (line 643), but the design gives that tooling no target to validate against. Also, credits have almost no sink besides extra copies and cosmetics. After the squad is equipped, credits likely lose their purpose by mid-campaign, and the document has nothing to catch that.
+
+**Needed:** A first economy table covering income and cost per mission, the kit-line length and cost curve, the per-act power target, and a stated target for the number of side missions per act.
+
+---
+
+## 4. The mutually exclusive kit choices collide with the cut list, and the kit-unlock rules are unclear
+
+**Severity: MAJOR**
+
+**Source:** Mission choices table (lines 374-379), Course delivery table (line 606: "Kits to cut if needed: Warmech, Medic, and Captain"), Kits table (lines 230-240), and Experience and kit training (line 405: "ordered training steps within unlocked kit lines").
+
+- The last choice, **Bring Them Home or Chain of Command**, exists to open the Medic or Captain kit. **Both** are on the cut list. If they are cut, that choice offers two empty rewards, and a story branch loses its systemic reason to exist. The document says "affected missions remain playable" (line 608), but it doesn't address a choice whose only payoff has been removed.
+- **Long Reach or Heavy Hands** splits Sniper and Minigun. Every later encounter therefore has to be beatable both without the Sniper and without the Minigun. Yet the example operation (line 109) and the Shock Sword "flank" design both assume a Sniper is available. The design doesn't say whether the unchosen kit can still be acquired later, for example through "random equipment rewards" (line 431), which "draw from appropriate discovered items." If it can, the exclusive choice is weak. If it can't, difficulty tuning needs two branches.
+- The Medic overlaps heavily with shared systems. **Any** operator can Revive (line 210), and medkits are available to everyone from the first squad mission. The Medic adds Stim and ranged Rescue on top. So the Medic branch of the final choice is fairly weak compared with a whole command kit, which tilts that choice toward the Captain.
+- The document never says how the **Grenade Launcher** and **Pistol** kits are acquired.
+- "Unlocked kit lines" doesn't say whether unlocking applies to the **whole campaign** or to **each operator**, or whether switching kits keeps training. That decides whether "training across kits" (line 411) is a real strategy or a trap.
+
+**Needed:** A table of every kit's unlock source, a scope rule for unlocks and training, and a fallback reward for each choice in case its kit is cut.
+
+---
+
+## 5. Missions have no failure conditions other than a wipe, and secure-type missions don't say how they resolve
+
+**Severity: MAJOR**
+
+**Source:** Mission outcomes (line 322: "A full-squad wipe means every deployed operator is Downed"), Extraction (lines 312-316), Objective structure (line 304: escort, hold a position), and Reinforcement pressure (lines 294-298).
+
+The only failure state the document defines is a full wipe. So it doesn't answer:
+
+- what happens when an **escort** target dies, or a **hold** position falls;
+- whether the squad can **abort** before finishing the objective, and with what result (does the side mission close? do Downed operators count as lost?);
+- how **secure-the-location** missions (line 316) treat Downed operators at the end, since the extraction-zone rule doesn't apply there;
+- whether reinforcement pressure has a cap or a schedule. "Sustained reinforcement pressure" (line 86) with no limit and no timer means a slow but careful squad faces endless waves, while no timer at all means turtling is always safe. The document gives neither.
+
+These rules set the mission's difficulty curve. The pacing section's "approach, commitment, objective pressure, and resolution" (line 351) depends on objective pressure escalating at a known rate, but no turn limit, wave schedule, or alarm state is specified. That also leaves the "optional cache vs. withdrawal" tradeoff (lines 117, 308) without anything to measure the cost of the detour.
+
+**Needed:** For each objective type, a list of failure conditions, an abort rule, the Downed-operator resolution for secure missions, and a reinforcement model (trigger, cadence, cap) that turns extra turns into a measurable cost.
 
 ---
 
 ## Round 2 — Cross-examination
 
-Colleague files read: narrative-critic, player-psychologist, feasibility-lead, adversarial-qa, business-analyst.
+### CONFLICTS
 
-### Conflicts
+**C1. Business Analyst #3 ("side missions are a second game", cuttable): I disagree. Side missions carry weight in the loss model.**
+The Analyst reads line 429 ("Story progression is intended to outfit a standard squad") as saying side missions are optional breadth that could be cut. But the only recovery path the document gives after a story-mission Game Over is in the same table cell: "revise loadouts, change the squad, or **complete available side missions** before attempting the story operation" (line 326). Side missions are the one way to rebuild between failed story attempts. They also hold the whole capture/rescue loop (lines 327-329), which is the only thing that softens permanent loss. If they are cut, a depleted roster has nowhere to go, and Game Over becomes a hard wall. That is the death spiral that Player Psychologist #1, Adversarial QA #1 and my #2 all describe, with the one partial exit taken away. My position is that side missions can be **reduced** (one job type, a fixed small pool per act) but not cut unless the loss model is redesigned at the same time. The Analyst's scope concern is real. The proposed fix moves the cost into a broken campaign.
 
-**C1. Player Psychologist F2 (confirmation before abandoning Downed operators) makes my F1 exploit worse unless failure gets a cost first.** I agree the auto-abandon at L308 is a misclick trap. But adding a prompt such as "Extracting now will leave X behind. Confirm?" sends the player to a decision screen at the exact moment the wipe-reset (F1) is the better option. It works as a tooltip for the exploit. The fix order matters. Give failure a cost first (my F1), then add the prompt. If the prompt ships first, it teaches players to throw missions. The psychologist also lists missing save/reload rules under F1. I agree, and I'll go further: even with a wipe cost, free manual saves are a second bypass of the same stakes. Failure cost and save policy have to be designed together, or each one undoes the other.
+**C2. Player Psychologist #2 (warn before Downed operators are lost at extraction): a warning makes my Finding 1 exploit easier to see.**
+I agree the silent loss is a readability bug. But a mandatory "these 3 operators will be lost" prompt on a story mission tells the player exactly when to stop moving into the zone and let the last operator go down for a free retry. The warning fixes the feeling of unfairness and makes the incentive problem worse. The order matters: the loss model has to be fixed first (extracting must never be worse than wiping), and then the warning becomes good UX. If the warning ships alone, the exploit becomes a feature everyone learns.
 
-**C2. Player Psychologist F5 (benched operators should earn XP so they don't "fall behind") conflicts with my F3.** The document already limits how far the bench falls behind. L256 brings recruits up to "a training foundation based on story progress", and L414 says a late specialist can "make productive choices for them immediately". The real problem runs the other way: benching costs too little, not too much. Shared XP would remove the last mechanical difference between deployed and reserve operators. Rotation would then be cosmetic, which is the outcome F3 warns about. I'd only accept bench XP alongside a carry-over cost such as recovery time, so the bench gets used because it has to be, not because it keeps pace for free.
+**C3. Player Psychologist #5 rates the exclusive kit choices MINOR and treats them as an information problem. I keep them at MAJOR, for systems reasons.**
+Previewing the branch helps with buyer's remorse. It does not fix the tuning cost. Each exclusive kit choice splits every later encounter into versions that must be balanced with or without that kit. The Psychologist suggests letting the locked-out option be bought later in the Armoury. That empties the choice, because line 421 ties Armoury availability to the unlock itself ("An unlock can provide equipment and make additional copies available in the Armoury"). The Armoury follows the lockout; it can't be used to get around it. Either the choice is real and needs branch-aware balance, or it isn't real and should be reframed as a timing choice (which kit you get first).
 
-**C3. Adversarial QA F4 (Field Orders AP loop): I agree with the gap, not the severity.** The document has one kit per operator (L222), and copies are limited (L398, L404). So two Captains in one squad take two Captain kit copies, two operators trained in that line, and two of the four squad slots. That's a large investment. More importantly, this is one case of my F2 problem: the document gives no numbers for anything. Whether Field Orders loops depends on a per-turn limit and an AP-granted versus AP-cost ratio that don't exist yet. Any first balance pass would add a once-per-turn limit. I'd rate the loop MINOR as a specific finding and fold it into "the document has no numbers" (F2). **Suppressing Fire board-lock** (also QA F4) is a different matter. It's MAJOR, and see Connection K3.
+**C4. Feasibility #3 and Business Analyst #2 treat the Warmech cut as one of the worst. From the systems side it is the cheapest of the three.**
+The kits table calls the Warmech "a supplied powered combat suit for selected heavy assault operations" (line 240). Line 421 says "Mission-supplied equipment supports specific scenarios, including the Warmech assault." It sits outside the owned-equipment economy, kit training and the choice table. Cutting it costs one Act IV mission and its art (I accept the Feasibility Lead's rig cost and the Narrative Critic's point about "captured machinery"), but nothing in progression collapses. Medic and Captain are the opposite case: each is the whole reward of a story choice, and each is a kit line that XP flows into. If something must go, the cut-list order should be **Warmech first, then one of Medic or Captain together with a redesign of the final choice, never both.**
 
-**C4. Feasibility Lead F2 and Business Analyst F3 both lean toward replacing the runtime generator with a fixed or pre-baked pool.** The analyst correctly says side missions are "load-bearing for the economy" (L406, L412), so they can't simply be cut. I'd go further and say a *finite* curated pool is better for the systems, not just cheaper to build. It closes the unlimited-farming hole in my F2 and gives the economy a ceiling that can be calculated. The danger is QA F3's "floor": with a finite pool and permanent loss, a player who loses operators late has limited ways to rebuild. So the scope cut is fine, but only together with a guaranteed-recruit floor (L256 mostly provides this) and a pool size worked out from the L412 progression target. Nobody should approve the cut without that calculation.
+**C5. Business Analyst #4 calls it a "paid-skin Armoury", but the document doesn't support that.**
+Line 389 and line 427 describe skins as bought with **credits**, an in-game currency earned from operations, and line 431 says skins can also be "earned through achievements." Nothing mentions real money. The DLC hook is real, but the Armoury is not monetization. This affects the Analyst's suggestion to cut skin purchases. Skins are one of only **two** credit sinks the document names, along with extra equipment copies. Cutting them makes my #3 worse: once the squad is equipped, credits have nothing to buy. Any cut there needs a replacement sink.
 
-### Connections
+### CONNECTIONS
 
-**K1. Friendly fire turns F1 from a passive exploit into a one-click reset (my F1 + QA F2).** L157 says area attacks affect "damageable units within their blast, including friendly operators". L388 gives area attacks such as Orbital Strike and Airburst. The player doesn't need to wait for the enemy to Down the rest of the squad. They can frag their own cluster and force L312's failure-with-retry. QA F2 asks whether a Downed operator can take more damage. That matters here too. If Downed operators can't be killed, self-bombing is a risk-free reset button. If they can, friendly fire becomes the only route to permanent death outside L308, which no other system expects. In both cases the Downed damage rule and the failure-cost rule are one design decision.
+**X1. Adversarial QA #5 (Suppressing Fire can block movement) + my #5 (wipe is the only failure state) = missions that can't be won but can't be lost.**
+QA asks whether an enemy Suppressing Fire cone over the only route to extraction can stop an operator every turn. Combine that with my #5: reinforcements have no stated cap and wipe is the only defined failure. The squad can then be pinned outside the zone with no way to extract, no defined abort, and no loss trigger unless the player feeds operators into fire. That is a soft-lock inside a single mission. It is also another case of Finding 1, where the player's only way out is to wipe on purpose. The symmetric control-cone rules QA wants and the reinforcement cap and abort rule I want need to be specified together.
 
-**K2. Loss has no weight in the systems or the story (my F3 + Narrative Critic F4 + L256).** The narrative critic shows that no authored content reacts to a death. From my side, the systems don't make loss hurt much either. A replacement arrives at the story-baseline training level (L256), gear and health reset (L208, L240), and the lost operator's equipment is never said to be lost with them. What a death actually removes is the XP spent above baseline, plus the player's own attachment. So the "bring them home" pillar sits on a mechanical cost that shrinks as the campaign goes on: the higher the baseline, the cheaper a death. Combined with F1's free wipe, losing an operator is either avoidable or cheap. It's never expensive in the way the pitch promises. Fix the systems side (catch-up below baseline, loss of carried gear, or a recruitment delay) alongside the narrative side. Narrative acknowledgement alone can't support stakes that the systems don't impose.
+**X2. Adversarial QA #2 (quitting mid-mission) shows that my Finding 1's side-mission analysis may not matter.**
+I argued that side missions push the player to keep a doomed squad fighting rather than extract partially. QA points out the document has no save or quit rule. If quitting mid-mission reverts to HQ, then on side missions too the best play is to quit when things go badly, and "Each mission is played once" (line 320) can't be enforced. So the inverted incentive covers the **whole** loss model, not just story missions. The fix has to include a save rule (an autosave at deployment that is overwritten on commit, or an ironman-style lock). Otherwise every loss tuning number, including the 45% capture rate, can simply be avoided.
 
-**K3. Extraction is the only pacing pressure, and the document both contradicts it and gives a counter to it (my F5 + QA F1 + QA F4).** My F5 says approach-phase pressure is missing, so everything depends on extraction. QA F1 shows that the rules for how extraction ends contradict each other (L117 says revival is required; L308 says Downed operators are abandoned automatically). QA F4 shows that Suppressing Fire has no duration or cap and can hold the fixed reinforcement approaches (L290). Together these mean the one phase that carries the mission's tension has unclear ending rules and an uncapped tool that can shut it off. Feasibility Lead F4 adds the third part. With no gameplay-AI design, the likeliest weak-AI result is the defender-holds-position default (L278), which makes the approach phase even more passive. **I'm upgrading F5 to MAJOR** (see below).
+**X3. Feasibility #1 / Business Analyst #1 (22 missions over 16 cycles) + my #4 (exclusive choices split the balance) = the balance budget is undercounted, not only the build budget.**
+Both colleagues count the **build** cost of 8 branch missions. Under my lens, the bigger cost comes after the branches. Each choice changes the kits available for every later mission, so four binary choices produce up to 16 equipment states going into Act IV. The Balance Agent's per-mission budget (line 643) assumes one player-power state per mission. The Feasibility Lead suggests that branch pairs share a map with different rewards. That fixes the build cost and leaves the downstream balance cost untouched, because the reward difference is the thing that branches. A cheap systemic fix is to reconverge: make the later kit available to everyone one act later, so the branches differ only for one act.
 
-**K4. A branch-locked kit can be lost twice (my F4 + QA F3 + L398).** L360 opens either the Medic or the Captain kit, and L398 says an unlock "*can*" make Armoury copies available, which implies some don't. If the only Medic kit belongs to an operator who is lost, and no Armoury copy exists, the player has lost the Medic for good. The branch didn't take it away. One extraction did. Then every later mission is played without the tool that makes Downed recovery possible. That feeds back into more losses. It's a death spiral the document never mentions. A player-psychology fix that only previews the branch choice (Psychologist F4) won't catch it. The rule has to be: kits opened by a branch are always buyable once opened.
+**X4. Narrative Critic #4 (the choices have no moral consequence) + my lens = the "Open the Cages" branch also has no mechanical output.**
+The Critic says rescuing civilians has no story payoff. From the systems side it is worse. Every other branch names a reward category ("precision weapons", "heavy fire support", "mobility equipment", "protective equipment", a kit). "Rescue civilians and skilled workers" (line 376) names people with no stated effect: no recruits, no roster slots, no Armoury unlocks, no XP foundation. The opposite branch gets "local weapons production." As written, the moral choice is also the empty choice, so a player optimizing systems will always leave people in the cages. One fix serves both lenses: rescued workers could expand roster space or raise the recruit training foundation (line 262). That ties the choice into the roster-floor problem in my #2 and gives the Act II character something to react to.
 
-**K5. Business Analyst F3 / Feasibility Lead F1 (the 16-path test matrix) give my F4 a production cost.** I raised 2^4 combinations as a balance target that isn't defined. The analysts show it's also a testing cost the eight-week plan can't absorb. That supports my proposed fix of a guaranteed minimum toolset for every path. It reduces the number of combinations that need tuning to 2 (Medic vs Captain). The other three pairs become changes in the amount of gear rather than which kits exist, and those can be tested by tuning numbers rather than replaying the campaign.
+**X5. Adversarial QA #4 / Feasibility #4 (NPC allies in the finale) + my Finding 1 = the finale can be retried until the outcome is acceptable.**
+Their Last Order is a main story mission, so a wipe returns the player to "before the failed attempt" (line 326). The player's choice "dooms one of those other characters" (Act IV section), and that outcome is recorded for DLC. Since the doc defines no failure besides a wipe and no rule for scripted deaths during combat, a player who dislikes how the scripted deaths play out can wipe and retry. The finale's one consequential branch can be retried at will. Also, if NPC allies count as "deployed operators" in the wipe definition (line 322), the wipe condition gets harder to reach with 8 units, and the AP economy is tuned for 4 (line 220). The finale's difficulty can't be set until both questions are answered.
 
-### Revisions
+**X6. Narrative Critic #2 / Player Psychologist #4 (the player's identity) + my #2 = a protected avatar is a roster floor of one.**
+If the Breakout prisoner is a protected avatar, as the Psychologist offers as an option, that operator can't be lost, which partly fixes the roster floor. But it creates an economy problem: the one operator who can't die is the safest place to invest XP, and everyone else becomes expendable. That works against line 437 ("Experienced operators retain the value of their additional investment"). If the avatar can die, the Act characters lose who they are reacting to. In either case the identity decision changes the loss economy and has to be made before the numbers in my #3 can be tuned.
 
-- **F1: stays BLOCKING, with a wider scope.** Three colleagues found the same thing on their own (Psychologist F1, Narrative F4, QA F1), so this is the board's most robust finding. I'm adding the friendly-fire enabler (K1), the save-policy dependency (C1), and QA's point that "secure the location" milestones (L310) have no extraction step, so the loss rule doesn't cover them at all.
-- **F2: stays MAJOR.** I'm absorbing QA F4's AP loop as an example of it (C3). I'm adding the condition that any move to a finite side-mission pool must come with a calculation of the pool size (C4).
-- **F3: stays MAJOR, reframed.** The finding is now "loss and rotation have almost no mechanical cost" (K2), not only "the bench has no job". L256's catch-up rule is the main cause of both.
-- **F4: stays MAJOR.** I'm adding the lose-it-twice death spiral (K4) and a firm fix: kits opened by a branch are always buyable once opened.
-- **F5: upgraded MINOR to MAJOR.** Combined with QA's Suppressing Fire board-lock and the L117/L308 contradiction, the mission's only pressure phase is undefined and can be shut off (K3).
-- **F5, partial withdrawal:** L404 says "Credits come from successful operations and their applicable rewards", so credits per kill is ruled out. Only the XP-source question (L119) is still open, so the farming condition now applies to XP only.
+### REVISIONS
+
+- **Finding 2: upgrade from MAJOR to BLOCKING.** Adversarial QA (#1) and the Player Psychologist (#1) reached the same death-spiral result independently, and C1 shows that the only partial exit (side missions) is on a colleague's cut list. Line 220 gives "4 operators for a standard mission" and never says whether fewer can deploy. Together with no roster floor, this is a reachable soft-lock. One correction: I wrote "a story mission that *requires* a standard squad". The document says "standard," not "required." The missing rule is the problem.
+- **Finding 1: keep BLOCKING and widen the scope.** Based on X2, I'm adding the missing save/quit rule. Without it the inversion covers side missions as well as story missions. Adversarial QA (#2) found the same story-mission inversion independently. I'm withdrawing my claim that side missions push the player "to keep a doomed squad in the fight", because without a save rule I can't say what side missions push the player toward.
+- **Finding 4: narrow the scope and keep MAJOR.** The point about cut kits leaving the choice empty is now covered by four reviewers, so I'm leaving it to them. My distinct points are the cost of tuning across branches (X3) and the unclear scope of kit unlocks. I'm **downgrading** the point that the Medic is weak compared with the Captain to a MINOR note. It is a balance guess, and without numbers (my own #3) I can't support it.
+- **Finding 5: keep MAJOR, with a note on how it combines with other findings.** On its own it is a spec gap. Combined with QA #5 (X1), it creates a soft-lock inside a single mission.
+- **Finding 3: unchanged.** No colleague disputed it. The Feasibility Lead's #5 (the token estimates are not checked against actual usage) points to the same problem in production: the plan has no measurements to tune against.
