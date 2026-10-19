@@ -259,9 +259,11 @@ The squad's appearance should remain recognizable in portraits, the headquarters
 
 #### Recruitment and loss
 
-Campaign milestones expand the roster. Recruits receive a training foundation based on story progress, giving them a useful place alongside established operators. The player can then shape their specialization.
+Campaign milestones expand roster capacity. Whenever an operator is lost or captured, they leave the roster and are **immediately replaced by a fresh recruit** with a pistol and starting experience points for training. The player spends credits to outfit the replacement. Automatic replacement keeps the current roster capacity filled and the squad ready to deploy.
 
-An operator lost during extraction leaves the active roster. A memorial preserves their identity and the mission in which they were lost. Captured operators are unavailable for deployment. Recruitment fills available roster space; [mission outcomes](#mission-outcomes) determine losses and opportunities to recover captives.
+Losing an operator costs their veterancy, identity, and the monetary investment in their equipment. The memorial preserves permanent losses and the missions in which they occurred. [Mission outcomes](#mission-outcomes) determine losses and opportunities to recover captives.
+
+A rescued operator rejoins by replacing someone in the current roster. That displaced operator is **reassigned to another unit** and permanently leaves the player's roster. Recovering a familiar veteran therefore also means letting a current squad member go.
 
 ### Enemies and encounter design
 
@@ -326,7 +328,7 @@ A full-squad wipe means every deployed operator is Downed. Its consequence depen
 | Main story mission | **Game Over.** The campaign cannot continue from that defeat. Trying again returns to before the failed attempt, where the player can revise loadouts, change the squad, or complete available side missions before attempting the story operation. |
 | Side mission | The campaign continues with the failed operation closed. Each deployed operator has a **45% chance of capture**; otherwise they are permanently lost. |
 
-Later optional rescue missions may offer a chance to recover captured operators. A rescue is a new operation with its own objective and consequences.
+Later optional rescue missions may offer a chance to recover captured operators. A rescue is a new operation with its own objective and consequences. [Recruitment and loss](#recruitment-and-loss) covers immediate replacements and how rescued operators rejoin.
 
 Campaign victory comes from completing **Their Last Order** and ending Directorate occupation of Marendel.
 
@@ -442,9 +444,13 @@ Roster growth and recruitment use story progress as a foundation. The player can
 
 The Iris Expanse is a human science-fiction setting with a hint of fantasy. Ring Wars centers on Marendel, a settled world of working facilities, logistics networks, service routes, and occupied towns. The occupation is visible in the places people depend on and in the force controlling them.
 
-Nova's resistance grows from the Directorate's own logistics organization. Its leaders built the network while outwardly serving the occupation. The campaign begins as that resistance starts acting openly, and the player becomes one of its skilled operators.
+Nova's resistance grows from the Directorate's own logistics organization. Its leaders built the network while outwardly serving the occupation. The campaign begins as that resistance starts acting openly, with the player directing its operator squad.
 
 The contrast is practical and immediate: a small force knows how the system works and attacks the facilities that sustain it. The Directorate has numbers, equipment, and entrenched positions. The resistance turns access, local knowledge, and precise action into opportunities.
+
+### Player perspective
+
+**The player is the squad.** Breakout introduces the squad's story through one imprisoned operator. The campaign follows the squad as its membership changes, and the Act characters' relationships are with that squad. Individual operators develop their own identities and service histories within it.
 
 ### The Ring and the stakes of isolation
 
@@ -460,10 +466,10 @@ Each Act introduces a principal resistance character. The squad outgrows its Act
 
 | Act | New character | Relationship and story beat |
 |---|---|---|
-| I — A foothold | The player's handler | Arranges the prison breakout and guides the opening operations. The relationship begins with the person who gets the player out alive and helps the squad establish its first base. |
-| II — Build the resistance | A gruff man who dislikes the player | The squad works with someone whose cooperation matters even though he does not like them. Resource raids, rescues, and securing the next route develop that working relationship as the resistance grows beyond its initial foothold. |
-| III — Drive them back | A businesslike man who likes the player | Clear objectives and a positive working relationship carry the push toward the capital. His direct approach gives the squad a trusted collaborator through the operations that force the Directorate back. |
-| IV — The capital | A woman who is Nova's CEO and the resistance leader | The player meets the leader behind the resistance and fights alongside her in the campaign's final movement. The relationships built through the earlier Acts converge around the assault on Directorate command. |
+| I — A foothold | The squad's handler | Arranges the prison breakout and guides the opening operations. The relationship begins with the person who gets the imprisoned operator out alive and helps the squad establish its first base. |
+| II — Build the resistance | A gruff man who dislikes the squad | The squad works with someone whose cooperation matters even though he does not like them. Resource raids, rescues, and securing the next route develop that working relationship as the resistance grows beyond its initial foothold. |
+| III — Drive them back | A businesslike man who likes the squad | Clear objectives and a positive working relationship carry the push toward the capital. His direct approach gives the squad a trusted collaborator through the operations that force the Directorate back. |
+| IV — The capital | A woman who is Nova's CEO and the resistance leader | The squad meets the leader behind the resistance and fights alongside her in the campaign's final movement. The relationships built through the earlier Acts converge around the assault on Directorate command. |
 
 ### Act IV and the final assault
 
