@@ -30,7 +30,7 @@ Ring Wars is a singleplayer, turn-based tactical squad shooter set in the Iris E
 
 The campaign follows the Nova resistance on Marendel. Raids on communications, power, supply routes, prisons, and command facilities gradually dismantle the occupation. Between operations, the player returns to headquarters to choose missions, prepare operators, buy equipment, and train new abilities.
 
-Combat centers on positioning, action points, and the interaction between different kits. Valid attacks hit, with damage varying within a visible range. Directional cover, armor, distance, visibility, and enemy control cones shape the value of each action. The player builds a plan from readable consequences, then adjusts as the battlefield changes.
+Combat centers on positioning, action points, and the interaction between different kits. Distance determines a shot's displayed hit chance, while directional cover and armor reduce the damage of hits. Visibility and enemy control cones shape the value of each approach. The player builds a plan from readable consequences, then adjusts as the battlefield changes.
 
 | Element | Design |
 |---|---|
@@ -45,7 +45,7 @@ Combat centers on positioning, action points, and the interaction between differ
 
 The intended audience enjoys planning coordinated turns, experimenting with squad composition, and developing recognizable characters over a campaign. The experience rewards both attachment to a regular team and the deliberate use of specialists for a particular operation.
 
-The distinctive appeal is the combination of a capable, outnumbered squad; reliable attacks with meaningful positional consequences; objective-driven raids that become withdrawals; and a campaign in which new equipment is found through the resistance's own operations.
+The distinctive appeal is the combination of a capable, outnumbered squad; readable accuracy that rewards effective positioning; objective-driven raids that become withdrawals; and a campaign in which new equipment is found through the resistance's own operations.
 
 ## Player experience and design pillars
 
@@ -57,9 +57,9 @@ Enemy numbers, overlapping threats, and limited actions make that strength condi
 
 ### Readable tactical decisions
 
-The battlefield provides enough information to support a plan: reachable destinations, movement costs, damage ranges, cover directions, visible enemies, and threatened areas. Each preview connects the proposed action to its likely tactical consequence.
+The battlefield provides enough information to support a plan: reachable destinations, movement costs, hit chance, damage ranges, cover directions, visible enemies, and threatened areas. Each preview connects the proposed action to its likely tactical consequence.
 
-Uncertainty comes from damage variation, unexplored space, and the opposition's response. The player should be able to explain a successful maneuver and understand the mistake behind a failed one. Good decisions include securing a reliable finish, preserving a route, spending an ability to save an action, and accepting exposure to reach a decisive objective.
+Uncertainty comes from firing beyond a weapon's optimal range, damage variation, unexplored space, and the opposition's response. The player should be able to explain a successful maneuver and understand the mistake behind a failed one. Good decisions include moving into reliable firing range, preserving a route, spending an ability to save an action, and accepting exposure to reach a decisive objective.
 
 ### A squad with an identity
 
@@ -152,7 +152,9 @@ Movement is a tactical action because the route matters as much as the destinati
 
 #### Attacks and damage
 
-A valid attack hits. The damage preview shows the range of health damage the target can receive after protection is considered. As a ranged weapon approaches its maximum range, the upper end of its damage narrows. Distance therefore affects the value of the shot while the player can still reason about its minimum result.
+Each ranged weapon has an optimal range and a maximum range. Valid clear shots within optimal range are guaranteed hits; beyond it, hit chance falls with distance until maximum range. Aiming previews the hit chance and damage before commitment. Burst weapons check each round separately, allowing partial hits.
+
+Advancing into optimal range trades movement and exposure for reliable fire. The player can secure that certainty or accept a less reliable shot from farther away.
 
 Damage passes through directional cover, then armor, then health. Weapon characteristics and learned abilities can change how an attack deals with those protections. Multiple smaller attacks and a powerful armor-piercing attack can have different value against the same target because protection applies to each hit.
 
@@ -184,7 +186,7 @@ Grenades follow a lobbed trajectory. The player considers the throw arc, landing
 
 Control cones turn a firing position into a threatened area. Their shape narrows with aim distance, and solid walls cut off the visible coverage. Both the squad and the enemy can use control to influence movement.
 
-**Overwatch** converts committed AP into reaction-fire opportunities. An enemy entering the cone or spending AP within it can trigger a normal weapon attack. The shot follows the weapon's damage, cover, armor, and range rules. A target that remains standing can continue its movement after the reaction.
+**Overwatch** converts committed AP into reaction-fire opportunities within the weapon's optimal range. An enemy entering the cone or spending AP within it can trigger a guaranteed hit, with cover and armor reducing damage normally. A target that remains standing can continue its movement after the reaction.
 
 **Suppressing Fire** controls movement by stopping enemies moving through its cone. It is useful for holding an approach, delaying an enemy advance, or giving another operator room to act. Its role is distinct from the damage dealt by a Minigun's direct attack.
 
@@ -496,7 +498,7 @@ Master, music, sound effects, and voiceover volume can be adjusted separately. P
 
 ### Information hierarchy
 
-The interface supports the decision immediately in front of the player. Mission objectives occupy a distinct place from action feedback. The selected operator exposes their remaining actions and relevant capabilities. Aiming and movement replace general information with the previews needed to commit an order.
+The interface supports the decision immediately in front of the player. Mission objectives occupy a distinct place from action feedback. The selected operator exposes their remaining actions and relevant capabilities. Aiming shows hit chance and damage; movement shows the route and cost needed to commit an order.
 
 World indicators identify objectives, extraction, movement, range, cover, and control cones. Their placement relates the rule to the space where it applies. Text, icons, shapes, and world positioning work together to explain state.
 
@@ -533,7 +535,7 @@ Later operations introduce capabilities through their objectives and rewards. A 
 
 ### Accessibility and player comfort
 
-Our Turn gives the player time to inspect the battlefield and consider orders. Movement paths, damage previews, world markers, and control cones reduce the need to remember information that the game can show at the point of decision.
+Our Turn gives the player time to inspect the battlefield and consider orders. Movement paths, hit-chance and damage previews, world markers, and control cones reduce the need to remember information that the game can show at the point of decision.
 
 Readable silhouettes, clear text, recognizable icons, and distinct Downed and action states support understanding across camera distances. Important information should remain understandable from the combined visual cues and written feedback. Players can adjust the opacity of in-world indicators to suit their view of the battlefield.
 
