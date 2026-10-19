@@ -8,6 +8,8 @@ Instructor: Joshua Burdick
 
 Last updated: 2026-10-19
 
+[Full GDD (Markdown on GitHub)](https://github.com/icosa-studios/ringwars-coursework/blob/main/GDD.md)
+
 ## Executive Summary
 
 **Ring Wars** is a singleplayer, turn-based tactical squad shooter set in the Iris Expanse. The player commands a standard squad of **4 operators** fighting the Directorate's occupation of Marendel. The Nova resistance raids communications, power, supply routes, prisons, and command facilities, gradually turning a foothold into a campaign to liberate the planet.
