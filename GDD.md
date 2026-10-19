@@ -67,6 +67,8 @@ An operator's callsign, appearance, training, and mission history make them reco
 
 The roster supports several ways to build that attachment. A player can develop a regular squad, maintain a bench of specialists, or explore different looks and imagined backstories. Practical preparation and personal expression meet in the same characters.
 
+This is war. You will lose good people. What you do next is how you win.
+
 ### Raids that advance the resistance
 
 Mission goals have consequences beyond the immediate firefight. Rescue brings people into the resistance. Captured weapons create new loadout options. Destroyed infrastructure weakens the occupation's position. Progress is expressed through operations, locations, and usable capabilities.
@@ -114,7 +116,7 @@ Consider a generated **Supply Sabotage** mission with an additional cache object
 
 **Completing the job.** The charges are planted. Extraction becomes the immediate goal as reinforcements arrive through the site's approaches. The optional cache is still a choice: the player weighs its reward against the distance and pressure it adds to the withdrawal.
 
-**Withdrawal.** Smoke conceals a crossing, and the Rifle operator covers the route behind the squad. If an operator is Downed, the player must create the time and access needed to revive them before continuing the extraction. The mission concludes when the squad has reached the extraction zone or the player has explicitly committed to leaving an operator behind.
+**Withdrawal.** Smoke conceals a crossing, and the Rifle operator covers the route behind the squad. A Downed teammate needs revival to join the withdrawal. The player must account for them before the final standing operator extracts; the [extraction rules](#extraction-and-securing-a-position) determine who comes home.
 
 **Return.** Earned equipment and credits support the next preparation. Mission experience contributes to training, and a completed side mission is removed from the current set of offers. The player's choices have affected both the immediate result and the resources available for the campaign.
 
@@ -203,7 +205,9 @@ This tactical choice exchanges movement efficiency for a different engagement an
 
 Health measures how much damage a unit can sustain. A Directorate enemy at zero health dies. An operator at zero health becomes **Downed** and needs revival to stand and act again.
 
-Operators have access to a shared Revive action. Reaching the Downed operator and committing AP creates a rescue problem within the current encounter. Medic training can improve the squad's options, including revival at a distance. Medkits and the Medic's Stim restore health to standing operators.
+Every operator can use the shared Revive action on an in-range Downed teammate. Reaching that teammate and committing AP creates a rescue problem within the current encounter. Medkits unlock in **A Place to Stand**, the first squad mission, and can be equipped by any operator to restore health to standing teammates.
+
+The Medic makes healing and revival easier to sustain as a squad strategy. Stim restores health, and trained Rescue revives a teammate at range. These specialist advantages build on the squad's shared access to revival and medkits.
 
 Health recovers between missions. Bringing a Downed operator home requires revival and a successful withdrawal, as described in [Extraction and securing a position](#extraction-and-securing-a-position).
 
@@ -255,7 +259,7 @@ The squad's appearance should remain recognizable in portraits, the headquarters
 
 Campaign milestones expand the roster. Recruits receive a training foundation based on story progress, giving them a useful place alongside established operators. The player can then shape their specialization.
 
-An operator lost during extraction leaves the active roster. A memorial preserves their identity and the mission in which they were lost. Recruitment fills the available roster space, while the loss of a familiar operator remains a personal consequence of the withdrawal.
+An operator lost during extraction leaves the active roster. A memorial preserves their identity and the mission in which they were lost. Captured operators are unavailable for deployment. Recruitment fills available roster space; [mission outcomes](#mission-outcomes) determine losses and opportunities to recover captives.
 
 ### Enemies and encounter design
 
@@ -309,7 +313,20 @@ Standing operators extract by entering the extraction zone. Once someone reaches
 
 Some milestone operations require the squad to defeat the defending force and secure the location. These encounters support moments such as taking a base, stopping a counterattack, or defeating an occupation commander. Their ending reflects control of the position.
 
-If the whole squad is Downed, the mission fails. The operation remains available for another attempt. Successful completion advances its campaign consequences; failure returns the player to the preparation and mission choices needed for a new attempt.
+#### Mission outcomes
+
+Each mission is played once in the continuing campaign. Resolved operations leave the available mission set.
+
+A full-squad wipe means every deployed operator is Downed. Its consequence depends on the operation:
+
+| Operation | Wipe outcome |
+|---|---|
+| Main story mission | **Game Over.** The campaign cannot continue from that defeat. Trying again returns to before the failed attempt, where the player can revise loadouts, change the squad, or complete available side missions before attempting the story operation. |
+| Side mission | The campaign continues with the failed operation closed. Each deployed operator has a **45% chance of capture**; otherwise they are permanently lost. |
+
+Later optional rescue missions may offer a chance to recover captured operators. A rescue is a new operation with its own objective and consequences.
+
+Campaign victory comes from completing **Their Last Order** and ending Directorate occupation of Marendel.
 
 #### Tactical layout
 
@@ -323,7 +340,7 @@ The facility continues beyond the mission perimeter through scenery, service roa
 
 Authored story missions pair a specific location and scenario with the campaign's important events. Their layout, objectives, discoveries, and teaching moments support that event's role in the player's experience.
 
-Generated side missions combine hand-authored spatial blocks into a complete tactical site. Variation changes routes, approach angles, objectives, cover decisions, and enemy placement while retaining a coherent facility. Each offered mission retains its setup across retries so the player can apply what they learned from the previous attempt.
+Generated side missions combine hand-authored spatial blocks into a complete tactical site. Variation changes routes, approach angles, objectives, cover decisions, and enemy placement while retaining a coherent facility. Each offer fixes its geometry, objectives, and enemy setup before deployment.
 
 Side-mission types include recovering supplies, gathering field intelligence, opening a weapons cache, and sabotaging a stockpile. Modifiers can introduce an additional cache or a more demanding enemy presence. Variety comes from the combination of job, space, and opposition.
 
@@ -377,7 +394,7 @@ The headquarters training space supports individual practice and optional solo c
 
 Campaign progress, operator development, appearance, equipment ownership, and purchases persist between visits. The main menu lets the player create a named campaign or continue an existing one.
 
-A mission's conclusion resolves its rewards and losses before the player prepares again. This keeps the headquarters loop tied to completed operations and gives each return a clear set of consequences to consider.
+Returning from an operation applies its rewards and losses before the player prepares again. [Mission outcomes](#mission-outcomes) govern campaign continuation and Game Over. Each return to headquarters gives the player a clear set of consequences to consider.
 
 ### Progression and economy
 
@@ -552,7 +569,15 @@ For a Supply Sabotage mission, its success is visible when the player can read t
 
 Ring Wars is built in **Unity 6 with URP**, using C# gameplay systems and editable content definitions. Blender supports environment construction and character preparation. Imported assets, generated media, and authored mission content become ordinary project assets that can be inspected and revised in the existing tools.
 
+The **level-building system is complete, tested, and approved**. The critical path from tactical layout through asset sourcing, construction, Unity integration, and playable verification is established. Remaining work on that system is polish; additional settings and asset sets are added as time allows.
+
 The eight-week course builds on the existing game through playable slices. A mission slice connects a brief, tactical layout, built environment, encounters, objectives, dialogue, and a checked result back at headquarters. Work proceeds through that complete path so a new scene or system change contributes to the game the player can play.
+
+### Existing verification workflow
+
+Agents regularly run tests and playable mission paths in the existing Unity project. Editor tools support direct mission launch, content and economy validation, shared tactical-planning checks, and generated-mission seed sweeps. Live playthroughs exercise movement, combat, objectives, extraction, and the return to headquarters with the resulting rewards and roster state.
+
+Verification follows the changed feature or mission path. Agents report expected and observed behavior, reproducible failures, and supporting evidence. Jim reviews visual quality, timing, and feel through play and directs the next iteration.
 
 ### Prose input and structured results
 
