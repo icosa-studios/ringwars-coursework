@@ -596,7 +596,16 @@ Ring Wars is built in **Unity 6 with URP**, using C# gameplay systems and editab
 
 The **level-building system is complete, tested, and approved**. The critical path from tactical layout through asset sourcing, construction, Unity integration, and playable verification is established. Remaining work on that system is polish; additional settings and asset sets are added as time allows.
 
-The eight-week course builds on the existing game through playable slices. A mission slice connects a brief, tactical layout, built environment, encounters, objectives, dialogue, and a checked result back at headquarters. Work proceeds through that complete path so a new scene or system change contributes to the game the player can play.
+The **eight-week course deliverable is a full singleplayer campaign playthrough**, from the opening escape through the final assault and ending. Missions, headquarters preparation, progression, and outcomes connect across that complete path.
+
+| Area | Course delivery target |
+|---|---|
+| Cinematics | Alpha-quality sequences that carry the campaign's story beats |
+| Voiceover | Alpha-quality performances for the campaign dialogue |
+| Cosmetics | A slim assortment of operator appearance options |
+| Kits to cut if needed | Warmech, Medic, and Captain |
+
+Production prioritizes completing and verifying the full campaign path. The kit cuts protect that goal; affected missions remain playable with the available equipment. Additional polish and content breadth follow as time allows.
 
 ### Existing verification workflow
 
