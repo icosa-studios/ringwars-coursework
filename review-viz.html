@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Ring Wars GDD: Multi-agent design review</title>
+<style>
+:root{
+  --bg:#16181D; --surface:#1F232B; --surface-2:#272C35; --text:#E8E6E1; --muted:#8A8F98; --rule:#343A45;
+  --sev-b:#E5484D; --sev-mj:#F5A623; --sev-mn:#5A6270;
+  --on-b:#16181D; --on-mj:#16181D; --on-mn:#FFFFFF;
+  --focus:#E8E6E1;
+  --p1:#2B3039; --p2:#3B414D; --p3:#4D5562; --p4:#626B7A;
+  --hatch:#6A707B; --edge-conn:#8A8F98; --edge-conf:#D9D6CF;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fb-h: 0px;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#F5F4F0; --surface:#FFFFFF; --surface-2:#ECEAE4; --text:#1B1D22; --muted:#596069; --rule:#D3D0C8;
+    --focus:#1B1D22; --p1:#EEEBE5; --p2:#DCD8CF; --p3:#C6C1B6; --p4:#ADA79C;
+    --hatch:#9AA0A8; --edge-conn:#6B717A; --edge-conf:#1B1D22;
+    color-scheme: light;
+  }
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{transition:none !important; animation:none !important} }
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--text)}
+a:hover{text-decoration-thickness:2px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.sr-only{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.skip{position:absolute;left:-9999px;top:0;background:var(--surface);padding:8px 12px;z-index:100}
+.skip:focus{left:8px}
+
+/* layout */
+.layout{display:block}
+.sidenav{display:none}
+.main-col{max-width:1200px;margin:0 auto;padding:0 24px 80px}
+@media (min-width:1280px){
+  .layout{display:grid;grid-template-columns:168px minmax(0,1200px);justify-content:center;column-gap:40px;padding:0 24px}
+  .main-col{padding:0 0 80px;margin:0;max-width:none}
+  .sidenav{display:block;position:sticky;top:32px;align-self:start;padding-top:48px}
+  .topnav{display:none !important}
+}
+.sidenav ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+.sidenav a{display:block;padding:6px 0 6px 14px;font-size:14px;color:var(--muted);text-decoration:none}
+.sidenav a:hover,.sidenav a:focus-visible{color:var(--text)}
+.topnav{display:flex;gap:4px 18px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.topnav a{color:var(--muted);text-decoration:none}
+.topnav a:hover{color:var(--text)}
+
+/* header */
+header.page{padding:48px 0 20px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px;font-weight:650;letter-spacing:-.01em}
+.subtitle{color:var(--muted);margin:0 0 14px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 24px;font-size:14px;color:var(--muted)}
+.meta .mono{color:var(--text)}
+.verdict{margin:24px 0 8px;border:2px solid var(--sev-b);background:var(--surface);padding:18px 22px;border-radius:4px}
+.verdict-h{font-size:21px;font-weight:650;margin:0 0 6px}
+.verdict p{margin:0 0 10px;max-width:72ch}
+.linkbtn{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;color:var(--text);font-size:15px}
+.footnote{font-size:14px;color:var(--muted);margin:10px 0 0}
+.countnote{font-size:14px;color:var(--muted);margin:4px 0 0}
+
+/* filter bar */
+.filterbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--rule);padding:10px 0;display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;font-size:14px}
+.filterbar .desc{color:var(--muted)}
+.btn{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:5px 12px;cursor:pointer;font-size:14px}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.seg-ctl{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg-ctl .btn{border:0;border-radius:0}
+.seg-ctl .btn + .btn{border-left:1px solid var(--rule)}
+
+/* sections */
+section.viz{padding:56px 0 8px}
+section.viz > h2{font-size:22px;margin:0 0 4px;font-weight:650}
+.lede{color:var(--muted);margin:0 0 20px;max-width:80ch;font-size:15px}
+.caption{font-size:15px;margin:12px 0 0}
+.caption-sub{font-size:14px;color:var(--muted);margin:4px 0 0}
+.controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 14px;font-size:14px}
+.controls .lbl{color:var(--muted)}
+.chartbox{width:100%;position:relative}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin:10px 0 0}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.bgs-b{background:var(--sev-b)} .bgs-mj{background:var(--sev-mj)} .bgs-mn{background:var(--sev-mn)}
+
+/* pills & chips */
+.pill{display:inline-block;font:600 12px/1 var(--mono);padding:4px 7px;border-radius:3px;letter-spacing:.02em;white-space:nowrap}
+.bg-b{background:var(--sev-b);color:var(--on-b)} .bg-mj{background:var(--sev-mj);color:var(--on-mj)} .bg-mn{background:var(--sev-mn);color:var(--on-mn)}
+.pill.split{padding:0;overflow:hidden;display:inline-flex}
+.pill.split span{padding:4px 7px}
+.chip{display:inline-block;font:600 12px/1 var(--mono);padding:4px 6px;border-radius:3px;background:var(--surface-2);border:1px solid var(--surface-2);white-space:nowrap}
+.chip-o{background:transparent;border:1px dashed var(--muted)}
+.tag{display:inline-block;font:600 12px/1 var(--mono);padding:3px 6px;border-radius:2px;border:1px solid var(--muted);white-space:nowrap}
+.tag-conn{border-style:solid}
+.tag-conf{border-style:dashed;border-color:var(--text)}
+.tag-rev{border-style:dotted}
+.badge{display:inline-block;font:600 12px/1.2 var(--mono);padding:4px 8px;border:1px solid var(--text);border-radius:2px}
+.badge.survived{border-style:dashed}
+.linkchip{font:600 12px/1 var(--mono);padding:5px 8px;border:1px solid var(--rule);background:var(--surface-2);border-radius:3px;cursor:pointer;text-decoration:underline}
+
+/* viz 1 */
+#v1-chart svg{display:block;overflow:visible}
+.seg{cursor:pointer;transition:opacity .2s}
+.seg.faded{opacity:.35}
+.seg.active{stroke:var(--text);stroke-width:2}
+.seg:focus-visible{outline:none;stroke:var(--focus);stroke-width:3}
+.seg-t{font:600 12px var(--mono);pointer-events:none}
+.v1-lab{cursor:pointer}
+.v1-lab:focus-visible{outline:none}
+.v1-lab:focus-visible .lab-abbr,.v1-lab:hover .lab-abbr{text-decoration:underline}
+.lab-abbr{font:600 13px var(--mono);fill:var(--text)}
+.lab-name{font:13px var(--sans);fill:var(--muted)}
+.v1-tot{font:12px var(--mono);fill:var(--muted)}
+.rule{stroke:var(--rule)}
+
+/* svg text classes */
+.f-b{fill:var(--sev-b)} .f-mj{fill:var(--sev-mj)} .f-mn{fill:var(--sev-mn)}
+.t-b{fill:var(--on-b)} .t-mj{fill:var(--on-mj)} .t-mn{fill:var(--on-mn)}
+.s-b{stroke:var(--sev-b)} .s-mj{stroke:var(--sev-mj)} .s-mn{stroke:var(--sev-mn)}
+.svg-t{fill:var(--text);font:13px var(--sans)}
+.svg-m{fill:var(--muted);font:12px var(--sans)}
+.svg-mono{font-family:var(--mono)}
+.hatch-line{stroke:var(--hatch);stroke-width:2}
+.hatch-bg{fill:var(--surface)}
+
+/* viz 2 */
+.cards{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border-radius:4px;border:1px solid var(--rule)}
+.card-head{padding:16px 20px;cursor:pointer}
+.card-h{margin:0;font-size:17px;font-weight:600;line-height:1.35}
+.card-toggle{background:none;border:0;padding:0;text-align:left;cursor:pointer;display:flex;gap:14px;align-items:baseline;width:100%}
+.card-toggle .rank{font:700 15px var(--mono);color:var(--muted);min-width:28px}
+.card-toggle .chev{margin-left:auto;font:14px var(--mono);color:var(--muted)}
+.card-meta{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:10px 0 0 42px;font-size:13px}
+.card-meta .grp{display:inline-flex;gap:4px;align-items:center;flex-wrap:wrap}
+.card-meta .grp-l{color:var(--muted);margin-right:4px}
+.matchcount{color:var(--muted);font-size:13px}
+.card-body{padding:4px 20px 20px 62px}
+.tl{border-left:2px solid var(--rule);padding-left:20px;margin-left:-22px}
+.tl h4{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px;font-weight:600}
+.rows{list-style:none;margin:0;padding:0}
+.rows li{padding:8px 0;border-top:1px solid var(--rule);font-size:15px;transition:opacity .2s}
+.rows li:first-child{border-top:0}
+.rows li.faded{opacity:.35}
+.rowline{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.rowline .rt{flex:1 1 300px}
+.lines{font:12px var(--mono);color:var(--muted)}
+details summary{cursor:pointer;color:var(--muted);font-size:14px;margin-top:4px}
+details p{margin:6px 0 0;max-width:80ch;font-size:15px}
+.qw{border:1px solid var(--text);border-left-width:4px;padding:10px 14px;margin-top:10px;border-radius:2px;font-size:15px}
+.nearmiss{margin:18px 0 0;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nearmiss button{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:4px 10px;font-size:14px;cursor:pointer;color:var(--text)}
+
+/* viz 3 */
+.v3-wrap{overflow-x:auto}
+.v3-inner{min-width:760px}
+.v3-band-h{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 6px;font-weight:600}
+#v3 svg{display:block}
+.v3-cell,.v3-rowlab,.v3-colh{transition:opacity .15s}
+.v3-dim{opacity:.3}
+.v3-rowlab{cursor:pointer}
+.v3-rowlab:focus-visible{outline:none}
+.v3-rowlab:focus-visible text,.v3-rowlab:hover text{text-decoration:underline}
+.v3-cell:focus-visible{outline:none}
+.v3-cell:focus-visible rect.box{stroke:var(--focus);stroke-width:2}
+.v3-empty{fill:none;stroke:var(--rule)}
+.v3-panel{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:14px 18px;margin:4px 0 10px;font-size:15px}
+.v3-panel p{margin:0 0 8px;max-width:90ch}
+.v3-panel .esc{border:1px solid var(--text);padding:10px 14px;margin-top:10px;border-radius:2px}
+.pt{font-size:12px;fill:var(--text);font-family:var(--sans);paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+
+/* viz 4 */
+#v4-chart svg{display:block}
+.fg{cursor:pointer;transition:opacity .15s}
+.fg .ln.held{stroke:var(--muted);stroke-width:1;opacity:.55}
+.fg .ln.chg{stroke-width:2.5}
+.fg .lbl{font:12px var(--mono);fill:var(--text)}
+.fg .lbl.l{fill:var(--muted)}
+.fg:focus-visible{outline:none}
+.fg:focus-visible .lbl,.fg.hl .lbl{font-weight:700;text-decoration:underline}
+.fg:focus-visible .ln.held,.fg.hl .ln.held{opacity:1;stroke:var(--text);stroke-width:2}
+svg.hovering .fg:not(.hl),svg.pinned .fg:not(.pin){opacity:.1}
+.fg.dim{opacity:.1}
+.fg.gone{display:none}
+.axis-t{font:600 14px var(--sans);fill:var(--text)}
+.band-t{font:600 12px var(--mono);fill:var(--text)}
+
+/* viz 5 */
+.v5-grid{display:flex;gap:24px;align-items:flex-start}
+.v5-side{flex:0 0 280px;font-size:14px}
+.v5-side h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.v5-side ol{margin:0 0 18px;padding-left:20px}
+.v5-side li{margin:0 0 6px}
+#v5-chart{flex:1 1 auto;min-width:0}
+#v5-chart svg{display:block;margin:0 auto}
+@media (max-width:900px){ .v5-grid{flex-direction:column} .v5-side{flex:none;width:100%} }
+.node{cursor:pointer}
+.node circle{fill:var(--surface);stroke:var(--muted);stroke-width:1.5}
+.node.pin circle{stroke:var(--text);stroke-width:3}
+.node:focus-visible{outline:none}
+.node:focus-visible circle{stroke:var(--focus);stroke-width:3}
+.node .nabbr{font:700 14px var(--mono);fill:var(--text)}
+.node .nname{font:12px var(--sans);fill:var(--muted)}
+.edge{cursor:pointer;transition:opacity .15s}
+.edge .vis{fill:none}
+.edge.e-conf .vis{stroke:var(--edge-conf);stroke-dasharray:7 5}
+.edge.e-conn .vis{stroke:var(--edge-conn)}
+.edge:focus-visible{outline:none}
+.edge:focus-visible .vis{stroke:var(--focus)}
+svg.hovering .edge:not(.hl){opacity:.08}
+svg.hovering .node:not(.hl){opacity:.4}
+.edge.dim{opacity:.1}
+.edge.off{display:none}
+.arr-conn{fill:var(--edge-conn)} .arr-conf{fill:var(--edge-conf)}
+.key-line{display:inline-block;width:34px;height:0;vertical-align:middle;margin-right:6px;border-top:3px solid var(--edge-conn)}
+.key-line.conf{border-top:3px dashed var(--edge-conf)}
+
+/* drawer */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:100vw;background:var(--surface);border-left:1px solid var(--rule);z-index:50;overflow-y:auto;padding:20px;box-shadow:-8px 0 24px rgba(0,0,0,.25)}
+.drawer h2{font-size:17px;margin:0}
+.drawer-h{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.drawer .item{border-top:1px solid var(--rule);padding:12px 0;font-size:15px}
+.drawer .item p{margin:6px 0}
+.drawer .jump{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;font:12px var(--mono);margin-right:10px}
+
+/* viz 6 */
+.tbl-controls{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;font-size:14px}
+.tbl-controls .row{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.tbl-controls .row > .lbl{color:var(--muted);min-width:80px}
+.fchip{background:var(--surface);border:1px solid var(--rule);border-radius:3px;padding:4px 9px;font:600 13px var(--mono);cursor:pointer}
+.fchip[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
+.fchip[aria-pressed="false"]{color:var(--muted);text-decoration:line-through}
+input[type="search"]{background:var(--surface);border:1px solid var(--rule);color:var(--text);padding:6px 10px;border-radius:3px;font-size:15px;min-width:260px}
+.tbl-wrap{width:100%}
+table.ft{width:100%;border-collapse:collapse;font-size:14px}
+.ft th{position:sticky;top:var(--fb-h);background:var(--bg);z-index:5;text-align:left;font-weight:600;border-bottom:1px solid var(--muted);padding:0;white-space:nowrap}
+.ft th button{background:none;border:0;padding:10px 8px;cursor:pointer;font-size:13px;color:var(--muted);text-align:left;width:100%}
+.ft th[aria-sort="ascending"] button,.ft th[aria-sort="descending"] button{color:var(--text)}
+.ft td{padding:9px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+.ft tr.frow{cursor:pointer}
+.ft tr.frow:hover td{background:var(--surface)}
+.ft tr.frow.open td{background:var(--surface)}
+.row-toggle{background:none;border:0;padding:0;cursor:pointer;font:600 13px var(--mono);text-decoration:underline;white-space:nowrap}
+.ft td.det{background:var(--surface);padding:6px 16px 18px 16px}
+.det h5{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 4px;font-weight:600}
+.det p{margin:0 0 6px;max-width:90ch;font-size:15px}
+.det ul{margin:0;padding-left:18px}
+.det li{margin:0 0 6px;font-size:15px}
+@keyframes flash{0%{box-shadow:inset 0 0 0 9999px rgba(232,230,225,.18)}100%{box-shadow:inset 0 0 0 9999px rgba(232,230,225,0)}}
+.flash td{animation:flash 1.6s ease-out}
+@media (prefers-reduced-motion: reduce){ .flash td{outline:2px solid var(--text);outline-offset:-2px} }
+@media (max-width:900px){
+  .tbl-wrap{overflow-x:auto}
+  .col-cited,.col-lines{display:none}
+  table.ft{min-width:820px}
+}
+.tblcount{font-size:14px;color:var(--muted);margin:0 0 8px}
+
+/* quick wins */
+ol.qwl{padding-left:22px;max-width:90ch}
+ol.qwl li{margin:0 0 16px}
+ol.qwl .sub{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:13px;color:var(--muted)}
+
+/* tooltip */
+#tooltip{position:fixed;z-index:60;max-width:380px;background:var(--surface-2);color:var(--text);border:1px solid var(--muted);border-radius:4px;padding:10px 12px;font-size:14px;line-height:1.45;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+#tooltip .th{font:600 13px var(--mono);margin-bottom:4px}
+#tooltip ul{margin:4px 0 0;padding-left:16px}
+#tooltip li{margin:0 0 3px}
+.about{font-size:14px;color:var(--muted);max-width:90ch}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg aria-hidden="true" focusable="false" width="0" height="0" style="position:absolute">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+      <rect width="7" height="7" class="hatch-bg"></rect>
+      <line x1="0" y1="0" x2="0" y2="7" class="hatch-line"></line>
+    </pattern>
+    <marker id="arr-b" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-b"></path></marker>
+    <marker id="arr-mj" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-mj"></path></marker>
+    <marker id="arr-mn" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-mn"></path></marker>
+    <marker id="arr-conn" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arr-conn"></path></marker>
+    <marker id="arr-conf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arr-conf"></path></marker>
+  </defs>
+</svg>
+
+<div class="layout">
+  <nav class="sidenav" aria-label="Sections">
+    <ol>
+      <li><a href="#verdict">Verdict</a></li>
+      <li><a href="#v1">Severity breakdown</a></li>
+      <li><a href="#v2">Top 5 issues</a></li>
+      <li><a href="#v3">Consensus and clash</a></li>
+      <li><a href="#v4">Finding flow</a></li>
+      <li><a href="#v5">Cross-examination</a></li>
+      <li><a href="#v6">All findings</a></li>
+      <li><a href="#quickwins">Quick wins</a></li>
+    </ol>
+  </nav>
+
+  <div class="main-col">
+    <header class="page" id="verdict">
+      <h1 id="doc-title">Ring Wars Game Design Document</h1>
+      <p class="subtitle">Multi-agent design review: 6 reviewers, Round 1 + cross-examination</p>
+      <div class="meta">
+        <span>Source: <a id="src-link" href="#" target="_blank" rel="noopener">GDD.md @ <span class="mono">0ddab88</span></a></span>
+        <span>Review date: <span class="mono" id="rev-date"></span></span>
+      </div>
+      <div class="verdict" role="region" aria-labelledby="verdict-h">
+        <p class="verdict-h" id="verdict-h">Not ready to drive production.</p>
+        <p>Two clusters block it: the loss rules contradict each other and can be beaten by failing on purpose, and the eight-week plan has no scope boundary. Fix scope first.</p>
+        <button class="linkbtn" id="verdict-toggle" aria-expanded="false" aria-controls="verdict-full">Read full verdict</button>
+        <p id="verdict-full" hidden style="margin-top:10px"></p>
+      </div>
+      <p class="footnote">Line references (L###) refer to the text export reviewed, not GitHub line numbers.</p>
+      <p class="countnote" id="countnote"></p>
+    </header>
+
+    <nav class="topnav" aria-label="Sections">
+      <a href="#v1">Severity</a><a href="#v2">Top 5 issues</a><a href="#v3">Consensus and clash</a><a href="#v4">Finding flow</a><a href="#v5">Cross-examination</a><a href="#v6">All findings</a><a href="#quickwins">Quick wins</a>
+    </nav>
+
+    <div class="filterbar" id="filterbar" hidden aria-live="polite">
+      <span id="fb-count"></span>
+      <span class="desc" id="fb-desc"></span>
+      <button class="btn" id="fb-clear">Clear filters</button>
+    </div>
+
+    <main id="main">
+      <section class="viz" id="v1" aria-labelledby="v1-h">
+        <h2 id="v1-h">How severe, and who was harshest</h2>
+        <p class="lede">Findings per reviewer, split by severity. Click a segment to filter the whole page to that reviewer and severity (Shift-click adds to the filter). Click a reviewer name to filter to that reviewer.</p>
+        <div class="controls">
+          <span class="lbl" id="basis-lbl">Severity basis</span>
+          <div class="seg-ctl" role="group" aria-labelledby="basis-lbl">
+            <button class="btn" data-basis="r1" aria-pressed="false">Round 1</button>
+            <button class="btn" data-basis="final" aria-pressed="true">Final (after cross-examination)</button>
+          </div>
+        </div>
+        <div class="chartbox" id="v1-chart"></div>
+        <div class="legend" aria-hidden="true">
+          <span><span class="sw bgs-b"></span>B = BLOCKING</span><span><span class="sw bgs-mj"></span>M = MAJOR</span><span><span class="sw bgs-mn"></span>m = MINOR</span>
+          <span>Reviewer bars share one scale; the All-reviewers bar has its own.</span>
+        </div>
+        <p class="caption" id="v1-caption"></p>
+        <p class="caption-sub" id="v1-caption-sub"></p>
+        <div id="v1-desc" class="sr-only"></div>
+      </section>
+
+      <section class="viz" id="v2" aria-labelledby="v2-h">
+        <h2 id="v2-h">Top 5 issues</h2>
+        <p class="lede">In synthesis order. Expand a card for the trail from Round 1 findings, through cross-examination, to final status. Filters fade rows inside cards but never hide cards.</p>
+        <div class="cards" id="v2-cards"></div>
+        <div class="nearmiss" id="v2-near"></div>
+      </section>
+
+      <section class="viz" id="v3" aria-labelledby="v3-h">
+        <h2 id="v3-h">The board agrees on the diagnosis and splits on the remedy</h2>
+        <p class="lede">Top band: who raised each top issue (filled = flagged in Round 1, hatched = built on in Round 2). Bottom band: positions on the six unresolved decisions. Cells that share a shade and P-number in a row hold the same position. Click a row label to open it.</p>
+        <div class="v3-wrap"><div class="v3-inner" id="v3-chart"></div></div>
+        <div class="legend" aria-hidden="true">
+          <span><span class="sw bgs-b"></span>Flagged R1, letter = R1 severity</span>
+          <span><svg width="14" height="12" style="vertical-align:-1px;margin-right:5px"><rect width="14" height="12" fill="url(#hatch)"></rect></svg>Built on in R2 (label = R2 item)</span>
+          <span>↑ severity raised in R2</span>
+          <span>P1–P4 = position cluster within a row</span>
+        </div>
+        <div id="v3-desc" class="sr-only"></div>
+      </section>
+
+      <section class="viz" id="v4" aria-labelledby="v4-h">
+        <h2 id="v4-h">What cross-examination did to each finding</h2>
+        <p class="lede">Each line is one finding, from its Round 1 severity (left) to its final severity (right). Thick arrowed lines changed severity. Hover or focus a line for details; click to pin it and jump to its row in the table. Esc unpins.</p>
+        <div class="controls">
+          <div class="seg-ctl" role="group" aria-label="Lines shown">
+            <button class="btn" id="v4-changed" aria-pressed="false">Show only changed</button>
+            <button class="btn" id="v4-all" aria-pressed="true">Show all</button>
+          </div>
+        </div>
+        <div class="chartbox" id="v4-chart"></div>
+        <div class="legend" aria-hidden="true">
+          <span>▲ upgraded</span><span>● held</span><span>◐ narrowed</span><span>⊕ widened</span><span>⑂ split (line goes to the highest part)</span><span>★ new in R2</span><span>⚑ conditional</span>
+        </div>
+        <p class="caption" id="v4-caption"></p>
+        <div id="v4-desc" class="sr-only"></div>
+      </section>
+
+      <section class="viz" id="v5" aria-labelledby="v5-h">
+        <h2 id="v5-h">Who cross-examined whom</h2>
+        <p class="lede">Arrows run from the reviewer who wrote a Round 2 item to each reviewer it cites. Dashed = conflict, solid = connection; thickness = number of items. Node size = Round 2 items written. Click a node to filter to that reviewer; click an edge to list its items.</p>
+        <div class="controls">
+          <span class="lbl">Edges</span>
+          <button class="btn" id="v5-conf" aria-pressed="true">Conflicts</button>
+          <button class="btn" id="v5-conn" aria-pressed="true">Connections</button>
+        </div>
+        <div class="v5-grid">
+          <div id="v5-chart"></div>
+          <div class="v5-side" id="v5-side"></div>
+        </div>
+        <div id="v5-desc" class="sr-only"></div>
+      </section>
+
+      <section class="viz" id="v6" aria-labelledby="v6-h">
+        <h2 id="v6-h">All findings</h2>
+        <p class="lede">Every finding, one row each. Click a row for the reviewer's text, revision note and the Round 2 items that cite it.</p>
+        <div class="tbl-controls" id="v6-controls"></div>
+        <p class="tblcount" id="v6-count" aria-live="polite"></p>
+        <div class="tbl-wrap"><table class="ft" id="v6-table"></table></div>
+      </section>
+
+      <section class="viz" id="quickwins" aria-labelledby="qw-h">
+        <h2 id="qw-h">Quick wins</h2>
+        <ol class="qwl" id="qw-list"></ol>
+      </section>
+
+      <section class="viz" aria-labelledby="about-h">
+        <h2 id="about-h" style="font-size:17px">About the counts</h2>
+        <p class="about" id="about"></p>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div id="tooltip" role="tooltip" hidden></div>
+
+<aside id="drawer" class="drawer" role="dialog" aria-modal="false" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-h"><h2 id="drawer-title"></h2><button class="btn" id="drawer-close">Close</button></div>
+  <div id="drawer-body"></div>
+</aside>
+
+<script>
+const DATA = {
+  "metadata": {
+    "document_title": "Ring Wars Game Design Document",
+    "source_document_url": "https://github.com/icosa-studios/ringwars-coursework/blob/0ddab88b645e07ed0874157bd81080bcc701a8b8/GDD.md",
+    "source_revision": "0ddab88",
+    "source_name_in_reviews": "gdd.txt",
+    "review_date": "2026-10-19",
+    "rounds_covered": "Round 1 (findings), Round 2 (cross-examination), Synthesis",
+    "line_reference_note": "Line numbers are as cited by reviewers against gdd.txt. Feasibility Lead and parts of Business Analyst cite passages by section name or quote rather than line number.",
+    "severity_scale": ["BLOCKING", "MAJOR", "MINOR"],
+    "cross_exam_outcome_scale": ["SURVIVED", "STRENGTHENED", "WEAKENED"]
+  },
+
+  "reviewers": [
+    { "code": "SD", "name": "systems-designer", "display_name": "Systems Designer", "lens": "Core loop, progression, pacing, difficulty curve, economy math", "source_file": "reviews/systems-designer.md", "round1_finding_count": 5 },
+    { "code": "NC", "name": "narrative-critic", "display_name": "Narrative Critic", "lens": "Setting, story structure, characters, theme", "source_file": "reviews/narrative-critic.md", "round1_finding_count": 5 },
+    { "code": "PP", "name": "player-psychologist", "display_name": "Player Psychologist", "lens": "Player motivation, onboarding, attachment, frustration and quit points", "source_file": "reviews/player-psychologist.md", "round1_finding_count": 5 },
+    { "code": "FL", "name": "feasibility-lead", "display_name": "Technical Feasibility Lead", "lens": "Buildability for one developer in eight weeks with Unity 6/URP and an agent toolchain", "source_file": "reviews/feasibility-lead.md", "round1_finding_count": 5 },
+    { "code": "AQA", "name": "adversarial-qa", "display_name": "Adversarial QA", "lens": "Rule contradictions, exploits, softlocks, undefined edge cases", "source_file": "reviews/adversarial-qa.md", "round1_finding_count": 5 },
+    { "code": "BA", "name": "business-analyst", "display_name": "Production/Business Analyst", "lens": "Scope, production cost, market positioning, deliverable framing", "source_file": "reviews/business-analyst.md", "round1_finding_count": 5 }
+  ],
+
+  "findings": [
+    {
+      "uid": "SD-F1", "reviewer_code": "SD", "reviewer": "systems-designer", "finding_id": "F1",
+      "title": "Failing the mission costs less than losing one operator, so the main stakes can be bypassed",
+      "description": "Permanent loss only happens on a successful extraction. A full-squad wipe is a failure, and failure has no stated cost: no operator loss, no campaign clock, no lost reward, no changed setup. If one operator is Downed and unreachable, the best play is to let the other three go Downed too, failing the mission, keeping all four operators, and replaying the same map with full knowledge. This undercuts the pitch, the Recruitment and loss section and the memorial. The document also never says whether XP, credits or gear used on a failed attempt are kept. Needed: a failure cost at least as bad as losing one operator (e.g. Downed operators captured or lost on a wipe, or the operation closes/escalates), plus defined XP/credit results on failure.",
+      "severity_round1": "BLOCKING", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "unchanged",
+      "reference_type": "passage",
+      "passage_reference": "L308 (Downed lost on successful extraction); L312 (whole squad Downed = fail, operation stays available); L326 (setup retained across retries); L7, L254-258",
+      "lines_cited": "7, 254-258, 308, 312, 326",
+      "related_top_issue_rank": 1
+    },
+    {
+      "uid": "SD-F2", "reviewer_code": "SD", "reviewer": "systems-designer", "finding_id": "F2",
+      "title": "The economy has no numbers, no stated sinks and no limit on farming",
+      "description": "Credits and XP have no values: no rate per mission, no training-step cost, no kit-line length, no Armoury prices, so the L412 progression target cannot be checked. Side missions come from a generator and the document never says whether offers refill or whether anything advances while the player farms. If they refill with no clock, side missions become unlimited XP and credits, story progression puts no ceiling on power, and the authored difficulty curve can be flattened by grinding. The only credit sinks (extra equipment copies, skins) run out once the squad is equipped. Needed: an economy table, a refill/limit rule for side missions, and a late-game credit sink.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "passage+omission",
+      "passage_reference": "L402-412 (Credits, Progression pace); L119 (completed side mission removed from offers); L326-328 (generated side missions). Omission: no statement of time passing between missions or pool limits",
+      "lines_cited": "119, 326-328, 402-412",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "SD-F3", "reviewer_code": "SD", "reviewer": "systems-designer", "finding_id": "F3",
+      "title": "Nothing carries over between missions, so the roster bench has no systemic job",
+      "description": "Each mission starts from the same clean state: health recovers, gear refreshes, recruits are brought to a story baseline. There is no injury, fatigue or recovery time, so being Downed and revived costs nothing after the mission. The only carried state is permanent loss, which F1 shows can be avoided. Reasons to use the bench are mission fit and preference, not systemic pressure. The dominant strategy is one heavily trained A-team plus a fresh recruit when a specialist kit is needed. Needed: at least one carry-over cost forcing rotation (e.g. recovery time), or an explicit statement that rotation is cosmetic and the bench exists only for loss recovery.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "reframed",
+      "reference_type": "passage",
+      "passage_reference": "L208 (health recovers between missions); L240 (gear uses refresh); L256 (recruits get story-based training foundation); L46, L68 (bench of specialists); L119; L404",
+      "lines_cited": "46, 68, 119, 208, 240, 256, 404",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "SD-F4", "reviewer_code": "SD", "reviewer": "systems-designer", "finding_id": "F4",
+      "title": "Some branch choices permanently lock whole kits, but the difficulty curve and teaching content assume all kits exist",
+      "description": "Choice pairs are exclusive. Bring Them Home / Chain of Command definitely locks Medic or Captain; Long Reach / Heavy Hands appears to lock Sniper or Minigun. Nothing says a closed kit can return (L408 limits random rewards to discovered items). A Chain of Command player has no Medic, so no ranged Rescue, and every later extraction plays differently. Difficulty and milestone missions don't say which kit set they are tuned for or whether they must be beatable on all branches. With 2^4 = 16 paths, the Balance Agent has no defined target. Needed: which kits each branch locks and whether permanently, a guaranteed minimum toolset for every path, and a balance target per branch (at least Medic/Captain).",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "passage+omission",
+      "passage_reference": "L360 (Bring Them Home / Chain of Command opens support kit); L358 (Long Reach / Heavy Hands); L353 (closes the other opportunity); L107 (sample mission uses Sniper and Medic); L206 (Medic ranged revival); L292, L346-347, L408, L538",
+      "lines_cited": "107, 206, 292, 346-347, 353, 358, 360, 408, 538",
+      "related_top_issue_rank": 5
+    },
+    {
+      "uid": "SD-F5", "reviewer_code": "SD", "reviewer": "systems-designer", "finding_id": "F5",
+      "title": "Mission pressure only starts after the objective, and reinforcement rules aren't defined",
+      "description": "Before the objective nothing pushes the player to move; defenders hold position and Overwatch triggers on AP spent in a cone, so slow overwatch-heavy play is the low-risk default, against the pacing goal. After the objective, 'sustained' reinforcements have no rate, cap, escalation or end condition, leaving extraction difficulty unspecified. If XP or credits come from kills (L119 ambiguous), unlimited reinforcements become a farming source. Needed: approach-phase pressure (alert level, patrol escalation or soft turn limit), a reinforcement model (trigger, wave size, interval, cap), and a statement that rewards come from objectives, not kills.",
+      "severity_round1": "MINOR", "severity_round1_qualifier": "becomes MAJOR if XP is awarded per kill",
+      "severity_after_round2": "MAJOR", "severity_change": "upgraded",
+      "reference_type": "passage+omission",
+      "passage_reference": "L84 (completing the job brings sustained reinforcement pressure); L279, L185, L290-292, L306, L332-334, L119. Omission: no turn limits, alert states or reinforcement timing",
+      "lines_cited": "84, 119, 185, 279, 290-292, 306, 332-334",
+      "related_top_issue_rank": null
+    },
+
+    {
+      "uid": "NC-F1", "reviewer_code": "NC", "reviewer": "narrative-critic", "finding_id": "F1",
+      "title": "The setting's three hooks are set up and then dropped: the Ring, the insider resistance, and the 'hint of fantasy'",
+      "description": "The Ring is severed in Act 1 (Sever the Ring, the fourth operation) and then disappears; the document never says how severing it 'changes the conditions of the conflict', and the final act doesn't mention it. The insider resistance, grown from the Directorate's own logistics organization, is the most distinctive story idea but no mission, briefing, choice or reward uses it; operators are generic 'highly trained resistance personnel' and the only trace is uniform color. The 'hint of fantasy' never reappears in setting, art direction or missions. As written the narrative is a generic resistance-raids-occupiers frame.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": "close to BLOCKING",
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (priority raised)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L428 (Ring connects Marendel to wider space); L344 (Sever the Ring); L430, L432; L422, L424 (insider resistance); L216, L326, L436, L448; L420 ('a hint of fantasy'); L444-452",
+      "lines_cited": "216, 326, 344, 420, 422, 424, 428, 430, 432, 436, 444-452",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "NC-F2", "reviewer_code": "NC", "reviewer": "narrative-critic", "finding_id": "F2",
+      "title": "The player's identity contradicts itself across sections",
+      "description": "Three incompatible answers to 'who is the player': an operator inside the fiction (L422), a commander above the roster (L29, War Table/Barracks framing L366-372), and an unarmed prisoner (L214, L511). The document doesn't say who the prisoner is, why a covert resistance member is in custody, or whether the prisoner joins the roster and can be permanently lost. If the player is an operator, that operator's permadeath has no defined story meaning; if the commander, L422 is wrong. This must be settled before dialogue, since the Voiceover Agent pipeline needs fixed speaker identities.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "passage+omission",
+      "passage_reference": "L422 ('The player becomes one of its skilled operators'); L29 ('The player commands a standard squad'); L366-372; L214, L511 (opening prisoner); L258, L308; L535, L581",
+      "lines_cited": "29, 214, 258, 308, 366-372, 422, 511, 535, 581",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "NC-F3", "reviewer_code": "NC", "reviewer": "narrative-critic", "finding_id": "F3",
+      "title": "No authored characters on either side; the antagonist has no face or motive",
+      "description": "The campaign builds to Their Last Order, but the document names no people: no Nova leader, handler, Directorate commander, or rescued medical team/field commander as characters. The Directorate's motive for occupying Marendel is never given; it is described only by force and look. Rescued people pay off as kit unlocks. 'Directed shots give important moments a point of view' but whose is never stated, and the voiceover contract requires a speaker identity the design doesn't supply. The climax can't land against an opponent the player never met.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (fix scoped down)",
+      "reference_type": "omission",
+      "passage_reference": "Omission of named characters. Cited: L347 (Their Last Order); L424, L450 (Directorate description); L264, L268-274, L310; L360 (rescue = kit unlock); L436, L581; L349",
+      "lines_cited": "264, 268-274, 310, 347, 349, 360, 424, 436, 450, 581",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "NC-F4", "reviewer_code": "NC", "reviewer": "narrative-critic", "finding_id": "F4",
+      "title": "The 'bring your operators home' promise is undercut by how loss and failure are framed",
+      "description": "The tagline and pillar make loss the emotional center, but the authored story never acknowledges loss: operator identities are left to player interpretation and the only recognition is a memorial. Editable callsigns plus pre-generated voice mean dialogue likely can't address operators by name. Read literally, a full-squad wipe costs nothing permanent while losing one operator costs a person, reversing the stakes. The explicit commit to leave an operator behind is treated as procedure with no fiction (capture? death?), despite the campaign opening with an escape from captivity.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "narrowed",
+      "reference_type": "passage+omission",
+      "passage_reference": "L7 (tagline); L66 (pillar); L440 (identities open to interpretation); L258 (memorial); L248, L535, L627; L308; L312; L117",
+      "lines_cited": "7, 66, 117, 248, 258, 308, 312, 440, 535, 627",
+      "related_top_issue_rank": 1
+    },
+    {
+      "uid": "NC-F5", "reviewer_code": "NC", "reviewer": "narrative-critic", "finding_id": "F5",
+      "title": "Mutually exclusive choices are framed as loadout picks while hiding moral stakes, and the road not taken disappears",
+      "description": "The choice table contains real ethical dilemmas but describes them as useful outcomes and their effects only through equipment. Open the Cages vs Take the Assembly Line means leaving imprisoned civilians in Directorate hands, touching the game's central rescue theme, yet has no stated narrative consequence. Bring Them Home reuses the tagline for an optional branch the player can reject. Nothing records what happened to the people or place not chosen. Either commit to these as story choices or reframe them so they don't promise moral weight.",
+      "severity_round1": "MINOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "upgraded",
+      "reference_type": "passage",
+      "passage_reference": "L355-360 (choice table); L353 ('a useful outcome...'; closes the other opportunity); L357 (Open the Cages / Take the Assembly Line); L360; L362; L72 (Pillar 4)",
+      "lines_cited": "72, 353, 355-360, 362",
+      "related_top_issue_rank": 5
+    },
+
+    {
+      "uid": "PP-F1", "reviewer_code": "PP", "reviewer": "player-psychologist", "finding_id": "F1",
+      "title": "Permanent loss is harsher than a full wipe, which pushes players to throw missions",
+      "description": "Losing one operator is permanent; losing the whole squad has no lasting cost and the mission can be retried with the same setup. A player whose favourite is Downed far from extraction is incentivised to get the rest Downed on purpose. The emotional peak, an agonising withdrawal, becomes a choice between sacrifice and a reset button. The GDD also never defines saves or manual saves; without that rule players will reload on any loss and the mechanic stops meaning anything.",
+      "severity_round1": "BLOCKING", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "unchanged (remedy refined)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L308, L312, L326. Omitted: what is kept after failure (XP, gear uses, injuries), save/reload rules, difficulty or ironman option",
+      "lines_cited": "308, 312, 326",
+      "related_top_issue_rank": 1
+    },
+    {
+      "uid": "PP-F2", "reviewer_code": "PP", "reviewer": "player-psychologist", "finding_id": "F2",
+      "title": "Downed operators are abandoned automatically, without confirmation",
+      "description": "Leaving a standing operator behind needs an explicit decision; Downed operators get no such step. The mission ends when all standing operators are accounted for, so if the last standing operator steps into the zone (possibly by misclick or waypoint error) every Downed teammate is permanently lost with no prompt. There is no movement undo, and Space both confirms actions and (held) ends the turn. Losing a customised operator to an input mistake makes players feel cheated rather than grieving, a common quit point.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "upgraded",
+      "reference_type": "passage+omission",
+      "passage_reference": "L308 (explicit commit only for standing operators; mission concludes when standing operators accounted for); L498, L505 (Space confirms / hold-Space ends turn). Omitted: confirmation before abandoning Downed operators, undo or misclick protection",
+      "lines_cited": "308, 498, 505",
+      "related_top_issue_rank": 3
+    },
+    {
+      "uid": "PP-F3", "reviewer_code": "PP", "reviewer": "player-psychologist", "finding_id": "F3",
+      "title": "The second mission introduces too much at once, and several core rules are never taught",
+      "description": "Breakout teaches movement and cover well, but A Place to Stand then introduces a four-operator squad, AP budgeting, attacks and damage ranges, Overwatch, and the entire HQ layer at once, the point of maximum overwhelm. Life-or-death rules with no teaching moment: cover->armor->health pipeline, reaction fire on AP spent in a cone, enemy grenade timing, Suppressing Fire stopping movement, split-move AP cost, and the extraction loss rule. No tooltips, glossary, codex, replay tutorial or difficulty option are named. The 'understand the mistake' promise (L62) depends on these being learned.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (priority raised)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L511-515 (Learning through the campaign); L366 (HQ available after initial base); L145, L155, L185-187, L284, L308 (rules without teaching beat); L62",
+      "lines_cited": "62, 145, 155, 185-187, 284, 308, 366, 511-515",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "PP-F4", "reviewer_code": "PP", "reviewer": "player-psychologist", "finding_id": "F4",
+      "title": "Kit lockouts are blind and permanent, and they can remove a core safety tool",
+      "description": "Exclusive operations permanently close an equipment line before the player has tried either option. Bring Them Home vs Chain of Command decides Medic vs Captain; the Medic is the only stated source of ranged Revive and Stim and the example squad includes one. A Captain player may discover much later that withdrawal and Downed systems are harder without a Medic and blame the choice, driving restarts and abandonment. No preview, trial, or later recovery of the lost kit is described.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (scope broadened)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L353-360 (closes the other opportunity); L206 (ranged revival is Medic training); L107 (example squad has Medic); L362 (too vague on recoverability)",
+      "lines_cited": "107, 206, 353-360, 362",
+      "related_top_issue_rank": 5
+    },
+    {
+      "uid": "PP-F5", "reviewer_code": "PP", "reviewer": "player-psychologist", "finding_id": "F5",
+      "title": "The attachment pillar starts late, and the first operator's identity is undefined",
+      "description": "The 'squad with an identity' pillar depends on naming and customising operators, but Barracks and appearance editing only open with HQ. Breakout's prisoner is never said to be customisable, nameable or a lasting roster member; if the first operator the player protects isn't carried forward, that first investment of care is lost. The document also doesn't say whether benched operators earn XP, which matters for the 'bench of specialists' playstyle.",
+      "severity_round1": "MINOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MINOR", "severity_change": "split (bench-XP point handed to SD-F3; prisoner point stays MINOR as a dependency on NC-F2)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L214 (single prisoner); L250 (recruits customizable immediately); L366; L119 (no statement of who receives XP)",
+      "lines_cited": "119, 214, 250, 366",
+      "related_top_issue_rank": null
+    },
+
+    {
+      "uid": "FL-F1", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "F1",
+      "title": "The document never says what the eight weeks will deliver, what already exists, or what gets cut",
+      "description": "The design describes a full commercial campaign: 4 acts, ~14 story operations plus 4 exclusive pairs (8 more missions), 9 kits with training lines, generated side missions, customizable operators with body types and heights, a physical HQ, memorial, skins, achievements, a Warmech, directed cameras, and two desktop platforms. The plan allows at most 16 reference cycles, and a cycle is an iteration, not a finished mission. Nothing lists which systems already work. There is no cut list, priority order, or definition of done at week 8. Branch-only missions are expensive. The plan budgets tokens but not Jim's review time, the real throughput limit. Needed: inventory, must/should/cut list, and a week-8 target (e.g. Act 1 plus one side-mission type).",
+      "severity_round1": "BLOCKING", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "unchanged",
+      "reference_type": "passage+omission",
+      "passage_reference": "Technical Strategy: 'The eight-week course builds on the existing game through playable slices.' Token budget: 'Two reference cycles per week... A cycle can revise an existing mission; it describes an iteration budget.' Omission: inventory, cut list, week-8 target",
+      "lines_cited": null,
+      "related_top_issue_rank": 2
+    },
+    {
+      "uid": "FL-F2", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "F2",
+      "title": "Generated side missions cannot be verified the way the pipeline claims",
+      "description": "Unity assembles side missions at runtime with zero generative-AI tokens, so no agent ever sees the specific mission a player gets; agents can check blocks but not every combination. Each assembled site must connect navigation across seams, join ladders and rooftops, support floor viewing, place reinforcement entries on believable approaches, keep extraction reachable, avoid camera obstruction, and persist seeds for retries. No generator-level solvability, reachability or seed tests are named; the Testing Agent contract is written for single authored paths. Should be scoped explicitly or cut to pre-baked, agent-checked layouts.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (recommendation revised: curated pre-verified pool instead of cut)",
+      "reference_type": "passage",
+      "passage_reference": "AI Architecture: 'Generated side missions assemble authored spatial blocks... Development agents... check the resulting missions before they reach the player.' Missions and tactical spaces: 'Variation changes routes... Each offered mission retains its setup across retries.'",
+      "lines_cited": null,
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "FL-F3", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "F3",
+      "title": "The Level Builder Agent is the critical path, and its tool integration and budget are not specified",
+      "description": "The Level Builder carries the riskiest work: assembling licensed assets in Blender and Unity, destructible cover, navigation baking, roof cutaways, lighting. The document never says how an agent drives the Unity Editor or Blender (editor scripting, batch mode, MCP bridge), nor how 'playable-path checks' run in a turn-based game, which needs a scripted or headless playthrough harness not mentioned anywhere. 160k tokens per build-and-integrate pass looks optimistic given scene data, image context and tool round-trips. No fallback (e.g. Jim building levels by hand) if the agent misses the subjective art bar.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "split (test-harness part upgraded to BLOCKING; token-budget part stays MAJOR)",
+      "reference_type": "passage+omission",
+      "passage_reference": "Agent table: 'this agent sources assets and builds the playable location'. Contracts: 'findings from import, navigation, cover, lighting, and playable-path checks'. Budget: 'Level build and Unity integration pass for one mission | 160,000'. Omission: tool integration method and test harness",
+      "lines_cited": null,
+      "related_top_issue_rank": 4
+    },
+    {
+      "uid": "FL-F4", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "F4",
+      "title": "The combat systems are tightly coupled and gameplay AI has no technical design",
+      "description": "Gridless free-position movement, destructible directional cover, wall-clipped and distance-narrowing control cones, mid-path Overwatch, smoke, lobbed grenades and elevation create a large interaction surface: cover must be computed for any point, destruction invalidates cached cover/LOS/navigation mid-turn, movement previews must forecast reaction fire along continuous paths, and enemy AI must score continuous candidate positions. The 'AI Architecture' section covers only development agents; there is no gameplay-AI design (utility scoring, influence maps, sampling, per-turn budget). This system is the most likely to slip or ship weak and could alone consume the eight weeks.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "passage+omission",
+      "passage_reference": "Movement 'uses free positions along traversable routes'; cover 'destructible', 'loses durability'; cones 'narrow with aim distance'; Overwatch on 'entering the cone or spending AP within it'; enemy behavior 'Enemies assess the battlefield through their role and orders...'. Omission: gameplay-AI technical design",
+      "lines_cited": null,
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "FL-F5", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "F5",
+      "title": "Customization, action cameras and cross-platform support add art and engineering scope the stated constraint ignores",
+      "description": "Art production is named as the biggest constraint, but mixing licensed packs collides with the customization promise: gear from different vendors must fit every body type and height (blend shapes or re-skinning), across 9 kits, worn pieces and helmet toggles, and hold up in close action-camera framing. Directed action shots need per-action obstruction-avoiding camera logic on generated maps. macOS is a second build/test target (Metal/URP, input) with no agent or check. None of this is in the constraint section or budgets. Suggested cut: single body type with tinted/swappable outfits, defer macOS.",
+      "severity_round1": "MINOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "split (customization upgraded to MAJOR; action cameras and macOS stay MINOR)",
+      "reference_type": "passage",
+      "passage_reference": "'Players can choose body type and height, face, skin tone, eye color, hair, outfit pieces, and available skins. Equipment and clothing fit across the body options.' 'Directed action shots bring the camera closer...' Platforms: 'Windows and macOS'",
+      "lines_cited": null,
+      "related_top_issue_rank": null
+    },
+
+    {
+      "uid": "AQA-F1", "reviewer_code": "AQA", "reviewer": "adversarial-qa", "finding_id": "F1",
+      "title": "Extraction, Downed, and failure rules contradict each other, and failing a mission beats succeeding",
+      "description": "L117 says the player must revive Downed operators and the mission ends only when the squad reaches the zone or the player explicitly commits to leaving someone. L308 applies explicit commitment only to standing operators and ends the mission automatically, losing Downed operators with no confirmation; a Medic pathing through the zone toward a revive could trigger it. L312 makes a full wipe a retryable failure. Exploit: since a wipe has no stated permanent cost, the best play when one operator is Downed far away is to wipe; with retained layouts (L326) a wipe is a free scouting run, and optional caches may be taken then wiped. Also unhandled: can extracted operators leave the zone; does 1 extracted + 3 Downed count as a wipe; what happens to Downed operators in 'secure the location' missions with no extraction.",
+      "severity_round1": "BLOCKING", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "unchanged (misclick sub-point narrowed; branch-scouting added)",
+      "reference_type": "passage",
+      "passage_reference": "L117 (Example of play: must revive / explicit commitment); L308 (Extraction: standing operators only, Downed lost on successful extraction); L312 (whole squad Downed = fail, retry); L326; L310; L208",
+      "lines_cited": "117, 208, 308, 310, 312, 326",
+      "related_top_issue_rank": 1
+    },
+    {
+      "uid": "AQA-F2", "reviewer_code": "AQA", "reviewer": "adversarial-qa", "finding_id": "F2",
+      "title": "The Downed state has no rules for further damage, enemy targeting, or forced movement",
+      "description": "Downed is defined only as 'needs revival to stand and act again'. Unanswered: can a Downed operator take more damage or be killed (frag, Airburst, Orbital Strike, enemy grenade)? Do enemies focus Downed operators? Can a Downed operator in a grenade marker be moved or carried? Does Revive trigger Overwatch (AP spent in a cone)? What health does a revived operator have, can they act the same turn, and is repeated Down/revive unlimited? Permanent loss depends on unspecified behavior, and Orbital Strike may be able to kill a Downed teammate.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "omission",
+      "passage_reference": "L204-208 (Downed definition); L157 (area attacks hit friendly operators); L278 (enemies seek to damage or Down operators); L284 (grenade response window); L185 (Overwatch on AP spent in cone); L258",
+      "lines_cited": "157, 185, 204-208, 258, 278, 284",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "AQA-F3", "reviewer_code": "AQA", "reviewer": "adversarial-qa", "finding_id": "F3",
+      "title": "Permanent losses can leave the roster unable to field a squad, and there is no recovery rule",
+      "description": "Lost operators leave the roster; milestones expand it; recruitment timing is unspecified. Unhandled: minimum squad size or deploying fewer than 4; recruiting between milestones; fate of equipment allocated to a lost operator, especially single-copy story rewards (Shock Sword, Long Reach/Heavy Hands); losing the Warmech pilot in Keys to the Giants when Break the Bastion depends on it. Opposite risk: side missions appear unlimited with no campaign clock, making grinding the obvious recovery path and trivialising loss. The design either softlocks or makes losses trivial; it needs a stated floor (guaranteed recruits, replaceable story gear) and ceiling (side-mission limit).",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "conditional (becomes BLOCKING if any wipe penalty is adopted)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L258 (lost operators leave roster); L256 (milestones expand roster); L404 (gear allocated to operators); L398 (unlock 'can' provide copies); L234 (Warmech supplied); L326; L410-414",
+      "lines_cited": "234, 256, 258, 326, 398, 404, 410-414",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "AQA-F4", "reviewer_code": "AQA", "reviewer": "adversarial-qa", "finding_id": "F4",
+      "title": "AP-granting and movement-control abilities have no stated limits, so they can loop or lock the board",
+      "description": "AP loop: multiple Captains can pass Field Orders back and forth; if AP granted >= AP cost or there is no once-per-turn/per-target limit, the squad gets unlimited actions. Board lock: Suppressing Fire has no duration, use count or per-enemy cap, so a Minigun on each fixed reinforcement approach can hard-stop all arrivals, removing extraction pressure. Enemy use: an enemy stopping player movement inside a grenade marker makes the response window unavoidable damage, contradicting the readability pillar.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "narrowed (AP loop limited to Chain of Command path; enemy-pin sub-point downgraded to MINOR; board lock stays MAJOR)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L388 (Field Orders grants AP); L129; L392 (cross-kit training); L398; L187 (Suppressing Fire stops movement); L290 (fixed exterior approaches); L183; L284; L157; L62",
+      "lines_cited": "62, 129, 157, 183, 187, 284, 290, 388, 392, 398",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "AQA-F5", "reviewer_code": "AQA", "reviewer": "adversarial-qa", "finding_id": "F5",
+      "title": "Objective and non-combatant units have no damage or failure rules",
+      "description": "Objectives include consoles, controls, supplies, rescue and escort, and explosions damage cover and 'damageable units', but the only failure condition is a full wipe. Unhandled: can the player's own explosives destroy a required console or cache, and is the mission then failed or stuck; what happens if an escorted/rescued person is Downed or killed and can enemies target them; what losing a held position means; whether a stockpile destroyed by stray explosives counts as sabotaged. Players can ignore escort NPCs, and dead-end states give the Testing Agent no expected result to check.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (scope widened to generated missions)",
+      "reference_type": "omission",
+      "passage_reference": "L298 (objective types); L169 (cover durability to fire and explosion); L157; L278-280; L312 (only failure condition); L585 (Testing Agent)",
+      "lines_cited": "157, 169, 278-280, 298, 312, 585",
+      "related_top_issue_rank": null
+    },
+
+    {
+      "uid": "BA-F1", "reviewer_code": "BA", "reviewer": "business-analyst", "finding_id": "F1",
+      "title": "No scope boundary between 'the game' and 'the eight-week deliverable'",
+      "description": "The design describes a full commercial campaign but the only timeline is an eight-week solo course. The document never says what exists, what eight weeks will deliver, or what gets cut. Content load: 9 kits incl. Warmech, ~14 story operations, 4 exclusive pairs adding 8 missions, a procedural generator, a body-type creator, Armoury, skins, memorial, solo training. The token budget pays for ~16 iteration cycles, which cannot build ~22 authored missions plus everything else. Omission: no MVP/vertical-slice definition, priority list, must/should/won't table, or inventory of existing work.",
+      "severity_round1": "BLOCKING", "severity_round1_qualifier": null,
+      "severity_after_round2": "BLOCKING", "severity_change": "unchanged (widened with FL's review-time point)",
+      "reference_type": "passage+omission",
+      "passage_reference": "Technical Strategy: 'The eight-week course builds on the existing game through playable slices'; L344-347 (story operations); L357-360 (choice pairs); 'A cycle can revise an existing mission; it describes an iteration budget'",
+      "lines_cited": "344-347, 357-360",
+      "related_top_issue_rank": 2
+    },
+    {
+      "uid": "BA-F2", "reviewer_code": "BA", "reviewer": "business-analyst", "finding_id": "F2",
+      "title": "The character creator works against the document's own top production risk",
+      "description": "Art production is named 'the largest technical constraint', yet the document commits to a full body-type/height/face/hair/outfit creator with gear fitted across body options, which by its own words is 'independent of combat effectiveness'. Every outfit, kit piece and helmet must be fitted and checked against every body type in portraits, the HQ lineup and close action shots. The identity pillar is load-bearing; the full creator is not. Callsigns, a few presets, mission history and the memorial would deliver most of the attachment at a fraction of the cost.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged",
+      "reference_type": "passage",
+      "passage_reference": "Appearance and personal identity: 'Players can choose body type and height... Equipment and clothing fit across the body options...' and 'Its choices are independent of combat effectiveness'; L252; L591 (Biggest Technical Constraint)",
+      "lines_cited": "252, 591",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "BA-F3", "reviewer_code": "BA", "reviewer": "business-analyst", "finding_id": "F3",
+      "title": "Branching choices and procedural side missions add a lot of work to build and test that most players never see",
+      "description": "Branching: four pairs mean each player sees half of 8 authored missions, and two pairs lock kits (Medic/Captain, precision/heavy), so all 9 kits must be balanced, taught and supported while any campaign uses a subset, and later missions must work for every branch combination. Generated side missions are load-bearing for the economy so can't simply be cut, but runtime assembly means agents can't check each result as L531 claims; the QA model (seeded pre-validation, constraint rules, curated pool) is unspecified.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "reframed (16-path balance matrix; generator half deferred to FL-F2)",
+      "reference_type": "passage+omission",
+      "passage_reference": "L355-360 (choice pairs); L326-328 (generator); L406, L412 (side missions support economy); L531 (agents check resulting missions)",
+      "lines_cited": "326-328, 355-360, 406, 412, 531",
+      "related_top_issue_rank": 5
+    },
+    {
+      "uid": "BA-F4", "reviewer_code": "BA", "reviewer": "business-analyst", "finding_id": "F4",
+      "title": "No market positioning, competitors, or commercial frame",
+      "description": "The document claims 'distinctive appeal' but never places it against the market. Its main hook (attacks always hit with visible damage ranges) sits in a crowded field (Gears Tactics, Mario + Rabbids, Into the Breach, Midnight Suns), and the elite squad / resistance HQ / war table / permadeath-memorial setup mirrors XCOM 2. Omissions: comparable titles, price or business model (are skins real money?), storefront plan, campaign/session length, and whether commercial release is a goal. The audience statement describes every squad-tactics fan.",
+      "severity_round1": "MAJOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "unchanged (recommendation changed: use insider-resistance premise as hook)",
+      "reference_type": "omission",
+      "passage_reference": "L48 ('distinctive appeal'); hook 'Valid attacks hit, with damage varying within a visible range'; L408 (skins 'bought where available'); L46 (audience statement); Platforms 'Windows and macOS'",
+      "lines_cited": "46, 48, 408",
+      "related_top_issue_rank": null
+    },
+    {
+      "uid": "BA-F5", "reviewer_code": "BA", "reviewer": "business-analyst", "finding_id": "F5",
+      "title": "The document is two documents for two audiences",
+      "description": "Sections 1-6 are a player-facing game design; Sections 7-8 are a production-pipeline proposal for an AI-agents course (token budgets, JSON manifests, rate limits). The summary and pillars never mention the pipeline, and the pipeline only loosely traces to pillars. A reader can't tell which deliverable is judged. Related omission: the Balance and Testing agents must report scenario observations and reproduction steps, but no test harness, scripted scenario runner, or headless simulation is described. Recommendation: one-paragraph framing up front and link each agent role to the pillars and mission content it serves.",
+      "severity_round1": "MINOR", "severity_round1_qualifier": null,
+      "severity_after_round2": "MAJOR", "severity_change": "split (two-documents framing stays MINOR; missing test harness upgraded to MAJOR)",
+      "reference_type": "passage+omission",
+      "passage_reference": "Sections 1-6 vs Sections 7-8 (AI Architecture, Technical Strategy); Balance/Testing agent contracts ('before-and-after observations', 'reproduction steps with evidence'). Omission: test harness",
+      "lines_cited": null,
+      "related_top_issue_rank": 4
+    }
+  ],
+
+  "round2_new_findings": [
+    {
+      "uid": "FL-NEW1", "reviewer_code": "FL", "reviewer": "feasibility-lead", "finding_id": "NEW (Round 2)",
+      "title": "The save and persistence model is unspecified",
+      "description": "Fixing the BLOCKING wipe exploit depends on a save model: without one, any loss rule can be beaten by quitting before the mission ends. A mid-mission save must serialize damaged cover durability on a gridless map, pending grenade markers, Overwatch cones, Downed states and the generator seed; deterministic retries require seeded AI and damage rolls. The document should state the save model (e.g. auto-save between missions only).",
+      "severity": "MAJOR",
+      "source_label": "FL Connection B / Revisions",
+      "note": "Not a Round 1 finding; excluded from Round 1 counts. Synthesis lists it just outside the top 5."
+    }
+  ],
+
+  "cross_exam_engagement": [
+    { "reviewer_code": "SD", "colleagues_engaged": ["NC", "PP", "FL", "AQA", "BA"], "conflict_count": 4, "connection_count": 5, "revision_count": 6 },
+    { "reviewer_code": "NC", "colleagues_engaged": ["SD", "PP", "FL", "AQA", "BA"], "conflict_count": 4, "connection_count": 5, "revision_count": 4 },
+    { "reviewer_code": "PP", "colleagues_engaged": ["SD", "NC", "FL", "AQA", "BA"], "conflict_count": 4, "connection_count": 6, "revision_count": 5 },
+    { "reviewer_code": "FL", "colleagues_engaged": ["SD", "NC", "PP", "AQA", "BA"], "conflict_count": 3, "connection_count": 7, "revision_count": 5 },
+    { "reviewer_code": "AQA", "colleagues_engaged": ["SD", "NC", "PP", "FL", "BA"], "conflict_count": 4, "connection_count": 6, "revision_count": 4 },
+    { "reviewer_code": "BA", "colleagues_engaged": ["SD", "NC", "PP", "FL", "AQA"], "conflict_count": 4, "connection_count": 4, "revision_count": 4 }
+  ],
+
+  "cross_exam_conflicts": [
+    { "conflict_uid": "SD-C1", "raised_by": "SD", "label": "C1", "against_reviewers": ["PP"], "target_findings": ["PP-F2", "PP-F1"], "own_findings": ["SD-F1"], "topic": "Confirmation prompt vs wipe exploit ordering", "disagreement": "A confirmation prompt before abandoning Downed operators (PP F2) acts as a tooltip for the wipe exploit unless failure gets a cost first. Fix order: failure cost, then prompt. Free manual saves are a second bypass; failure cost and save policy must be designed together." },
+    { "conflict_uid": "SD-C2", "raised_by": "SD", "label": "C2", "against_reviewers": ["PP"], "target_findings": ["PP-F5"], "own_findings": ["SD-F3"], "topic": "Bench XP", "disagreement": "PP wants benched operators to earn XP. SD says the bench already catches up via L256/L414; shared XP would make rotation cosmetic. Accept bench XP only alongside a carry-over cost like recovery time." },
+    { "conflict_uid": "SD-C3", "raised_by": "SD", "label": "C3", "against_reviewers": ["AQA"], "target_findings": ["AQA-F4"], "own_findings": ["SD-F2"], "topic": "Field Orders AP loop severity", "disagreement": "Agrees with the gap but not severity: two Captains are a large investment and the loop depends on numbers that don't exist yet. Rates the loop MINOR and folds it into SD F2. Suppressing Fire board-lock is separately MAJOR." },
+    { "conflict_uid": "SD-C4", "raised_by": "SD", "label": "C4", "against_reviewers": ["FL", "BA"], "target_findings": ["FL-F2", "BA-F3"], "own_findings": ["SD-F2"], "topic": "Finite side-mission pool", "disagreement": "A finite curated pool is better for systems (closes farming), but only with a guaranteed-recruit floor and a pool size calculated from the L412 progression target." },
+
+    { "conflict_uid": "NC-C1", "raised_by": "NC", "label": "C1", "against_reviewers": ["BA", "FL"], "target_findings": ["BA-F2", "FL-F5"], "own_findings": ["NC-F4", "NC-F1"], "topic": "Cutting the character creator", "disagreement": "Accepts the cost argument but not that attachment survives the cut alone. Pair the cut with cheap narrative carriers: generated one-line backgrounds, briefing/HQ lines reacting to loss, memorial text recording how operators were lost." },
+    { "conflict_uid": "NC-C2", "raised_by": "NC", "label": "C2", "against_reviewers": ["SD"], "target_findings": ["SD-F1"], "own_findings": ["NC-F4"], "topic": "'Failed operation closes' remedy", "disagreement": "'Closes' can't apply to single-path story missions (Sever the Ring, Break the Bastion, Their Last Order). Keep 'Downed operators captured on a wipe', which fits the prisoner opening and Open the Cages." },
+    { "conflict_uid": "NC-C3", "raised_by": "NC", "label": "C3", "against_reviewers": ["PP"], "target_findings": ["PP-F5"], "own_findings": ["NC-F2"], "topic": "Severity of undefined opening prisoner", "disagreement": "PP rates it MINOR; NC holds MAJOR because it decides who the protagonist is and must be settled before any voiceover script." },
+    { "conflict_uid": "NC-C4", "raised_by": "NC", "label": "C4", "against_reviewers": ["PP"], "target_findings": ["PP-F4"], "own_findings": ["NC-F5"], "topic": "Kit-only branch previews", "disagreement": "Previewing only kits finishes the thematic flattening. Previews should lead with the people and place left behind, then the kit consequence." },
+
+    { "conflict_uid": "PP-C1", "raised_by": "PP", "label": "C1", "against_reviewers": ["SD"], "target_findings": ["SD-F1"], "own_findings": ["PP-F1", "PP-F3"], "topic": "Wipe penalty severity curve", "disagreement": "Losing all Downed operators on a wipe creates a death spiral for players never taught the rules. A wipe should cost more than a successful extraction and less than four permanent deaths: capture with a time-limited rescue mission, or the operation closes and rewards are lost." },
+    { "conflict_uid": "PP-C2", "raised_by": "PP", "label": "C2", "against_reviewers": ["SD"], "target_findings": ["SD-F3"], "own_findings": ["PP-F5"], "topic": "Penalties vs rewards for rotation", "disagreement": "Recovery timers mean nothing without a campaign clock and double-punish anxious players. Drive rotation with rewards: partial bench XP, B-team side missions, breadth recognition." },
+    { "conflict_uid": "PP-C3", "raised_by": "PP", "label": "C3", "against_reviewers": ["FL"], "target_findings": ["FL-F5", "BA-F2"], "own_findings": ["PP-F5"], "topic": "How far to cut customization", "disagreement": "FL's single body type with tint-only variation falls below the attachment floor (operators look identical). Endorses BA's callsigns + presets + history + memorial, with a nameable Breakout prisoner." },
+    { "conflict_uid": "PP-C4", "raised_by": "PP", "label": "C4", "against_reviewers": ["NC"], "target_findings": ["NC-F5"], "own_findings": ["PP-F4"], "topic": "Adding moral weight to branches", "disagreement": "Moral framing on top of blind kit lockouts creates resentment. Soften mechanics first (preview, recoverable kit), then add moral framing." },
+
+    { "conflict_uid": "FL-CON1", "raised_by": "FL", "label": "Conflict 1", "against_reviewers": ["SD", "AQA"], "target_findings": ["SD-F2", "SD-F3", "SD-F5", "AQA-F3"], "own_findings": ["FL-F1"], "topic": "Additive fixes vs uncut schedule", "disagreement": "Proposed fixes (recovery time, refill rules, credit sinks, alert levels, reinforcement models, recruit floors) each need state, UI, save data and testing. Use the cheapest rule: bench explicitly optional, fixed per-mission reinforcement rule, numbers table now, defer late-game sink." },
+    { "conflict_uid": "FL-CON2", "raised_by": "FL", "label": "Conflict 2", "against_reviewers": ["NC"], "target_findings": ["NC-F3"], "own_findings": ["FL-F1", "FL-F5"], "topic": "Named, faced characters", "disagreement": "Faced characters need bespoke art, facial animation and voice, hitting the art bottleneck. Use briefing text plus one voiced handler, with the antagonist via intercepted orders and shown only in the final mission. Prioritize the cheap Ring payoff in briefing copy." },
+    { "conflict_uid": "FL-CON3", "raised_by": "FL", "label": "Conflict 3", "against_reviewers": ["BA"], "target_findings": ["BA-F4"], "own_findings": [], "topic": "Market positioning severity", "disagreement": "Positioning doesn't change what can be built in eight weeks; MINOR until the document says commercial release is a goal. BA F5 (decide what is being judged) is more urgent." },
+
+    { "conflict_uid": "AQA-CON1", "raised_by": "AQA", "label": "Conflict 1", "against_reviewers": ["SD"], "target_findings": ["SD-F1"], "own_findings": ["AQA-F3", "AQA-F1"], "topic": "Wipe penalty without roster floor", "disagreement": "Capture/loss on a wipe without a roster floor turns an exploit into a softlock; in Breakout (single prisoner) any failure would end the campaign. Wipe penalty and roster floor must be fixed together." },
+    { "conflict_uid": "AQA-CON2", "raised_by": "AQA", "label": "Conflict 2", "against_reviewers": ["PP"], "target_findings": ["PP-F2"], "own_findings": ["AQA-F1"], "topic": "Cause of auto-abandonment: input vs rule", "disagreement": "L507 already separates confirm from End Turn. The defect is L308 itself: deliberate moves (pass-through, Overwatch-interrupted) abandon Downed teammates. Fix: require the same explicit commitment for Downed operators as standing ones." },
+    { "conflict_uid": "AQA-CON3", "raised_by": "AQA", "label": "Conflict 3", "against_reviewers": ["SD"], "target_findings": ["SD-F5"], "own_findings": ["AQA-F4"], "topic": "Mission pressure severity", "disagreement": "SD rated it MINOR conditional on kill XP; AQA says MAJOR unconditionally because uncapped reinforcements through fixed approaches plus uncapped Suppressing Fire make extraction endless or trivial." },
+    { "conflict_uid": "AQA-CON4", "raised_by": "AQA", "label": "Conflict 4", "against_reviewers": ["FL", "BA"], "target_findings": ["FL-F2", "BA-F3"], "own_findings": ["AQA-F3"], "topic": "Generator vs fixed pool and roster recovery", "disagreement": "Either is acceptable, but a small fixed pool makes the softlock real once exhausted and an unlimited generator trivialises loss. Generator choice and roster floor/ceiling must be decided together." },
+
+    { "conflict_uid": "BA-C1", "raised_by": "BA", "label": "C1", "against_reviewers": ["FL"], "target_findings": ["FL-F5"], "own_findings": ["BA-F2"], "topic": "Customization severity", "disagreement": "FL rates customization MINOR; BA holds MAJOR because it multiplies the document's own named bottleneck and is decoupled from combat, making it the cleanest cut." },
+    { "conflict_uid": "BA-C2", "raised_by": "BA", "label": "C2", "against_reviewers": ["FL"], "target_findings": ["FL-F1"], "own_findings": ["BA-F1", "BA-F3"], "topic": "Week-8 target", "disagreement": "Rejects 'one side-mission type' in the slice: the generator has the most new tooling and least pillar impact. Target Act 1 authored missions plus the HQ loop via menus; side missions later as a small hand-checked pool. Partly reverses BA's own Round 1 wording." },
+    { "conflict_uid": "BA-C3", "raised_by": "BA", "label": "C3", "against_reviewers": ["SD", "AQA"], "target_findings": ["SD-F2", "AQA-F3"], "own_findings": ["BA-F3"], "topic": "Capped pool undermines generator business case", "disagreement": "If side missions are capped, a runtime generator is overbuilt; if uncapped, the economy is broken. 'It cannot be both.'" },
+    { "conflict_uid": "BA-C4", "raised_by": "BA", "label": "C4", "against_reviewers": ["NC", "PP"], "target_findings": ["NC-F1", "NC-F3", "NC-F5", "PP-F4"], "own_findings": ["BA-F1"], "topic": "Additive narrative/UI fixes vs scope", "disagreement": "Named characters, insider missions, branch acknowledgment and kit previews each add scope to a BLOCKING plan. Subtraction is cheaper: make choice pairs reward/story variants that don't lock kits." }
+  ],
+
+  "cross_exam_connections": [
+    { "connection_uid": "SD-K1", "found_by": "SD", "label": "K1", "reviewers_involved": ["SD", "AQA"], "findings_linked": ["SD-F1", "AQA-F2"], "combined_insight": "Friendly fire (L157, L388) turns the wipe exploit into a one-click reset. Whether Downed operators can be killed decides if self-bombing is risk-free or the only other route to permadeath; Downed damage and failure cost are one decision." },
+    { "connection_uid": "SD-K2", "found_by": "SD", "label": "K2", "reviewers_involved": ["SD", "NC"], "findings_linked": ["SD-F3", "NC-F4"], "combined_insight": "Loss has no weight in systems or story: replacements arrive at baseline, gear and health reset, so a death costs only XP above baseline, shrinking over the campaign. Narrative acknowledgement alone can't carry stakes the systems don't impose." },
+    { "connection_uid": "SD-K3", "found_by": "SD", "label": "K3", "reviewers_involved": ["SD", "AQA", "FL"], "findings_linked": ["SD-F5", "AQA-F1", "AQA-F4", "FL-F4"], "combined_insight": "Extraction is the only pacing pressure, yet its ending rules contradict (L117 vs L308), Suppressing Fire can freeze reinforcements, and weak AI defaults to holding position. Triggers SD F5 upgrade to MAJOR." },
+    { "connection_uid": "SD-K4", "found_by": "SD", "label": "K4", "reviewers_involved": ["SD", "AQA"], "findings_linked": ["SD-F4", "AQA-F3"], "combined_insight": "A branch-locked kit can be lost twice: if the only Medic kit's carrier dies and no Armoury copy exists, the Medic is gone for good, feeding a death spiral. Rule: kits opened by a branch are always buyable once opened." },
+    { "connection_uid": "SD-K5", "found_by": "SD", "label": "K5", "reviewers_involved": ["SD", "BA", "FL"], "findings_linked": ["SD-F4", "BA-F3", "FL-F1"], "combined_insight": "The 16-path matrix is also a testing cost; a guaranteed minimum toolset reduces tuning to 2 combinations (Medic vs Captain), with other pairs as gear-quantity variants." },
+
+    { "connection_uid": "NC-X1", "found_by": "NC", "label": "X1", "reviewers_involved": ["NC", "SD", "PP"], "findings_linked": ["NC-F5", "SD-F4", "PP-F4"], "combined_insight": "The branch named after the tagline (Bring Them Home) controls the Medic, the only ranged Rescue; choosing against it makes bringing operators home mechanically harder. Embrace the trade explicitly or rename the branch." },
+    { "connection_uid": "NC-X2", "found_by": "NC", "label": "X2", "reviewers_involved": ["NC", "AQA"], "findings_linked": ["NC-F3", "NC-F5", "AQA-F5"], "combined_insight": "Rescued people are hollow both mechanically (no damage/death/failure rules) and narratively (no names or lines); Pillar 4 has nothing behind it." },
+    { "connection_uid": "NC-X3", "found_by": "NC", "label": "X3", "reviewers_involved": ["NC", "BA"], "findings_linked": ["NC-F1", "BA-F4"], "combined_insight": "The unused insider-logistics premise is the missing market differentiator vs XCOM 2 and would give generated side-mission objectives a narrative reason." },
+    { "connection_uid": "NC-X4", "found_by": "NC", "label": "X4", "reviewers_involved": ["NC", "BA", "FL"], "findings_linked": ["NC-F2", "NC-F3", "BA-F5"], "combined_insight": "The Voiceover Agent contract requires speaker identities the design never supplies; defining two or three named voices is cheap and unblocks an agent role." },
+    { "connection_uid": "NC-X5", "found_by": "NC", "label": "X5", "reviewers_involved": ["NC", "AQA", "PP"], "findings_linked": ["NC-F4", "AQA-F2", "PP-F2", "AQA-F1"], "combined_insight": "Defining what 'lost' means in fiction (capture vs death) settles Downed targeting, confirmation and rescue hooks. L117 expresses design intent and is the tiebreaker over L308." },
+
+    { "connection_uid": "PP-X1", "found_by": "PP", "label": "X1", "reviewers_involved": ["PP", "AQA"], "findings_linked": ["PP-F2", "AQA-F1"], "combined_insight": "The Example of Play (L117), likely tutorial/store copy, teaches that the game will ask before abandoning anyone, while L308 silently abandons Downed operators: a broken promise, not just missing UX. Triggers PP F2 upgrade to BLOCKING." },
+    { "connection_uid": "PP-X2", "found_by": "PP", "label": "X2", "reviewers_involved": ["PP", "AQA"], "findings_linked": ["PP-F3", "AQA-F2"], "combined_insight": "Untaught rules plus friendly fire on Downed bodies let a player permanently kill their favourite with their own ability; needs damage previews and a hard warning." },
+    { "connection_uid": "PP-X3", "found_by": "PP", "label": "X3", "reviewers_involved": ["PP", "FL", "BA"], "findings_linked": ["PP-F3", "FL-F4", "BA-F4"], "combined_insight": "On a gridless map the reaction-fire movement preview is the only way to learn the Overwatch trigger; cutting it makes reaction fire feel random, undermining the no-hit-chance hook. Scope cuts must protect it." },
+    { "connection_uid": "PP-X4", "found_by": "PP", "label": "X4", "reviewers_involved": ["PP", "FL", "BA"], "findings_linked": ["PP-F3", "FL-F1", "BA-F1"], "combined_insight": "If the slice is Act 1, onboarding (Breakout, A Place to Stand) is most of what playtesters see, so mission-2 overload drives the whole impression." },
+    { "connection_uid": "PP-X5", "found_by": "PP", "label": "X5", "reviewers_involved": ["PP", "AQA", "SD"], "findings_linked": ["PP-F3", "AQA-F4", "SD-F5"], "combined_insight": "The approach teaches patience is safe, then extraction traps players with an unseen suppression-plus-grenade combo: a spike that reads as unfair." },
+    { "connection_uid": "PP-X6", "found_by": "PP", "label": "X6", "reviewers_involved": ["PP", "BA"], "findings_linked": ["PP-F1", "BA-F4"], "combined_insight": "The XCOM audience imports save-scumming habits; leaving the save model undefined defaults to reloading losses, voiding the memorial." },
+
+    { "connection_uid": "FL-A", "found_by": "FL", "label": "A", "reviewers_involved": ["FL", "BA", "AQA", "SD"], "findings_linked": ["FL-F3", "BA-F5", "AQA-F5", "SD-F4"], "combined_insight": "Every quality gate (Level Builder, Testing, Balance) assumes an agent can load a scenario, run turns and read outcomes; no harness is specified. Must exist before week 2. Triggers harness split/upgrade to BLOCKING." },
+    { "connection_uid": "FL-B", "found_by": "FL", "label": "B", "reviewers_involved": ["FL", "SD", "PP", "AQA"], "findings_linked": ["SD-F1", "PP-F1", "AQA-F1"], "combined_insight": "The wipe rule fix is trivial but exposes an unspecified save system; mid-mission saves must serialize destructible gridless state, grenades, cones, Downed states and seeds. Produces FL new MAJOR finding." },
+    { "connection_uid": "FL-C", "found_by": "FL", "label": "C", "reviewers_involved": ["FL", "AQA"], "findings_linked": ["AQA-F4", "FL-F4"], "combined_insight": "Unbounded control effects make gameplay AI intractable; use limits on control abilities are both a balance fix and an AI requirement." },
+    { "connection_uid": "FL-D", "found_by": "FL", "label": "D", "reviewers_involved": ["FL", "AQA"], "findings_linked": ["AQA-F5", "FL-F2", "FL-F4"], "combined_insight": "Generator may place objectives near destructible cover, creating unverifiable unwinnable missions. Make objectives indestructible engine-wide (one-line rule)." },
+    { "connection_uid": "FL-E", "found_by": "FL", "label": "E", "reviewers_involved": ["FL", "BA", "SD", "AQA"], "findings_linked": ["BA-F3", "SD-F2", "AQA-F3", "FL-F2"], "combined_insight": "A curated pool of pre-generated, agent-verified side missions fixes verification, keeps economy income and caps farming; runtime assembly can return after week 8." },
+    { "connection_uid": "FL-F", "found_by": "FL", "label": "F", "reviewers_involved": ["FL", "SD", "PP", "BA"], "findings_linked": ["SD-F4", "PP-F4", "BA-F3", "FL-F1"], "combined_insight": "Branch-locked kits cost double for half the use; choice pairs that vary rewards or timing but never lock kits turn a 16-path matrix into one target." },
+    { "connection_uid": "FL-G", "found_by": "FL", "label": "G", "reviewers_involved": ["FL", "AQA"], "findings_linked": ["AQA-F3", "FL-F1"], "combined_insight": "The Warmech needs its own nav sizing, cover rules, animations and camera for a few operations; it is the clearest single cut and removes AQA's pilot-loss softlock." },
+
+    { "connection_uid": "AQA-A", "found_by": "AQA", "label": "A", "reviewers_involved": ["AQA", "FL", "BA"], "findings_linked": ["FL-F2", "BA-F3", "AQA-F5"], "combined_insight": "Retained setup locks a broken generated site in place across every retry; needs an abandon or reroll rule for offers." },
+    { "connection_uid": "AQA-B", "found_by": "AQA", "label": "B", "reviewers_involved": ["AQA", "SD", "PP", "NC"], "findings_linked": ["SD-F4", "PP-F4", "NC-F5", "AQA-F1"], "combined_insight": "Failure returns the player to 'mission choices', so deliberate wipes can scout both sides of an exclusive pair; the lockout is not truly blind or permanent." },
+    { "connection_uid": "AQA-C", "found_by": "AQA", "label": "C", "reviewers_involved": ["AQA", "SD", "PP"], "findings_linked": ["SD-F4", "PP-F4", "AQA-F2", "AQA-F4"], "combined_insight": "Medic and Captain paths are different exploit surfaces (Field Orders AP loop vs Downed gaps); the Balance Agent needs per-branch test cases." },
+    { "connection_uid": "AQA-D", "found_by": "AQA", "label": "D", "reviewers_involved": ["AQA", "SD"], "findings_linked": ["SD-F3", "AQA-F2"], "combined_insight": "With no per-mission Downed cap and full recovery, an operator is effectively immortal while a Medic stands; permadeath rests only on the L308 edge case." },
+    { "connection_uid": "AQA-E", "found_by": "AQA", "label": "E", "reviewers_involved": ["AQA", "NC"], "findings_linked": ["NC-F2"], "combined_insight": "If the player's own operator can be permanently lost, the document lacks a game-over condition." },
+    { "connection_uid": "AQA-F", "found_by": "AQA", "label": "F", "reviewers_involved": ["AQA", "NC"], "findings_linked": ["NC-F5", "AQA-F5"], "combined_insight": "Open the Cages' moral weight is undercut because rescued civilians have no death or failure rules." },
+
+    { "connection_uid": "BA-X1", "found_by": "BA", "label": "X1", "reviewers_involved": ["BA", "SD", "PP", "AQA"], "findings_linked": ["SD-F1", "PP-F1", "AQA-F1", "BA-F4"], "combined_insight": "The wipe exploit plus no save rules sinks the only hook against XCOM 2; the game plays like XCOM with savescumming built in." },
+    { "connection_uid": "BA-X2", "found_by": "BA", "label": "X2", "reviewers_involved": ["BA", "NC"], "findings_linked": ["NC-F1", "BA-F4"], "combined_insight": "The insider-resistance premise is a differentiator that exists but is unused (forged orders, patrol schedules, supply sabotage)." },
+    { "connection_uid": "BA-X3", "found_by": "BA", "label": "X3", "reviewers_involved": ["BA", "AQA", "SD", "FL"], "findings_linked": ["AQA-F5", "AQA-F4", "SD-F4", "FL-F2", "FL-F3", "BA-F5"], "combined_insight": "Five findings from three reviewers cannot be checked without a turn-based test harness; the whole QA promise of Sections 7-8 depends on it." },
+    { "connection_uid": "BA-X4", "found_by": "BA", "label": "X4", "reviewers_involved": ["BA", "PP", "FL"], "findings_linked": ["PP-F3", "FL-F1"], "combined_insight": "Opening HQ functions in stages over Act 1 eases onboarding and lets the slice ship with fewer HQ functions finished." }
+  ],
+
+  "cross_exam_revisions": [
+    { "finding_uid": "SD-F1", "reviewer_code": "SD", "change_type": "unchanged", "severity_before": "BLOCKING", "severity_after": "BLOCKING", "note": "Scope widened: friendly-fire enabler (K1), save-policy dependency (C1), 'secure the location' missions have no extraction step." },
+    { "finding_uid": "SD-F2", "reviewer_code": "SD", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Absorbs AQA F4 AP loop; any finite pool must come with pool-size calculation." },
+    { "finding_uid": "SD-F3", "reviewer_code": "SD", "change_type": "reframed", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Now 'loss and rotation have almost no mechanical cost' (K2)." },
+    { "finding_uid": "SD-F4", "reviewer_code": "SD", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Adds lose-it-twice death spiral; fix: branch-opened kits always buyable." },
+    { "finding_uid": "SD-F5", "reviewer_code": "SD", "change_type": "upgraded", "severity_before": "MINOR", "severity_after": "MAJOR", "note": "Combined with Suppressing Fire board-lock and L117/L308 contradiction (K3)." },
+    { "finding_uid": "SD-F5", "reviewer_code": "SD", "change_type": "partially_withdrawn", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Credits-per-kill ruled out by L404; farming condition now applies to XP only." },
+
+    { "finding_uid": "NC-F5", "reviewer_code": "NC", "change_type": "upgraded", "severity_before": "MINOR", "severity_after": "MAJOR", "note": "Tagline-named branch controls main survival tool (X1); rescue side has no stakes (X2)." },
+    { "finding_uid": "NC-F4", "reviewer_code": "NC", "change_type": "narrowed", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Defers wipe exploit to others; notes L380 ambiguity; narrows to unacknowledged loss and no fiction for 'left behind'." },
+    { "finding_uid": "NC-F1", "reviewer_code": "NC", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Priority raised to NC's top recommendation (X3)." },
+    { "finding_uid": "NC-F3", "reviewer_code": "NC", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Fix scoped down: named handler, named Directorate commander, one line each for rescued characters." },
+
+    { "finding_uid": "PP-F2", "reviewer_code": "PP", "change_type": "upgraded", "severity_before": "MAJOR", "severity_after": "BLOCKING", "note": "R1: L117 vs L308 contradiction in the core loss mechanic." },
+    { "finding_uid": "PP-F1", "reviewer_code": "PP", "change_type": "unchanged", "severity_before": "BLOCKING", "severity_after": "BLOCKING", "note": "R2: remedy refined; don't overcorrect to wipe = total roster loss." },
+    { "finding_uid": "PP-F3", "reviewer_code": "PP", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "R3: priority raised; adds friendly fire on Downed allies as most severe instance." },
+    { "finding_uid": "PP-F4", "reviewer_code": "PP", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "R4: scope broadened; supports cutting branching on player grounds." },
+    { "finding_uid": "PP-F5", "reviewer_code": "PP", "change_type": "split", "severity_before": "MINOR", "severity_after": "MINOR", "note": "R5: bench-XP point handed to SD F3; prisoner identity stays MINOR as dependency on NC F2." },
+
+    { "finding_uid": "FL-F3", "reviewer_code": "FL", "change_type": "split_upgraded", "severity_before": "MAJOR", "severity_after": "BLOCKING", "note": "Test-harness part upgraded to BLOCKING; 160k token-budget part stays MAJOR." },
+    { "finding_uid": "FL-F5", "reviewer_code": "FL", "change_type": "split_upgraded", "severity_before": "MINOR", "severity_after": "MAJOR", "note": "Customization upgraded to MAJOR; action cameras and macOS stay MINOR." },
+    { "finding_uid": "FL-F2", "reviewer_code": "FL", "change_type": "recommendation_withdrawn", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Withdraws 'cut to pre-baked layouts'; replaced with curated pre-verified pool (Connection E)." },
+    { "finding_uid": "FL-NEW1", "reviewer_code": "FL", "change_type": "added", "severity_before": null, "severity_after": "MAJOR", "note": "New finding: save and persistence model unspecified (Connection B)." },
+    { "finding_uid": "FL-F1", "reviewer_code": "FL", "change_type": "unchanged", "severity_before": "BLOCKING", "severity_after": "BLOCKING", "note": "Findings 1 and 4 unchanged." },
+
+    { "finding_uid": "AQA-F1", "reviewer_code": "AQA", "change_type": "narrowed", "severity_before": "BLOCKING", "severity_after": "BLOCKING", "note": "Misclick sub-point narrowed; branch-scouting via wipe added (Connection B)." },
+    { "finding_uid": "AQA-F3", "reviewer_code": "AQA", "change_type": "conditional_upgrade", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Becomes BLOCKING if any wipe penalty is adopted (Breakout single-prisoner case)." },
+    { "finding_uid": "AQA-F4", "reviewer_code": "AQA", "change_type": "narrowed", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "AP loop limited to Chain of Command path; enemy-pin-in-grenade sub-point downgraded to MINOR; board lock stays MAJOR." },
+    { "finding_uid": "AQA-F5", "reviewer_code": "AQA", "change_type": "widened", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Scope widened to generated missions with retained setup." },
+
+    { "finding_uid": "BA-F1", "reviewer_code": "BA", "change_type": "widened", "severity_before": "BLOCKING", "severity_after": "BLOCKING", "note": "Adopts FL point: plan budgets tokens but not Jim's review time." },
+    { "finding_uid": "BA-F3", "reviewer_code": "BA", "change_type": "reframed", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Now a 16-path balance matrix; generator half deferred to FL F2." },
+    { "finding_uid": "BA-F4", "reviewer_code": "BA", "change_type": "unchanged", "severity_before": "MAJOR", "severity_after": "MAJOR", "note": "Recommendation changed: commit to insider premise as hook and fix failure rule." },
+    { "finding_uid": "BA-F5", "reviewer_code": "BA", "change_type": "split_upgraded", "severity_before": "MINOR", "severity_after": "MAJOR", "note": "Two-documents framing stays MINOR; missing test harness upgraded to MAJOR." }
+  ],
+
+  "synthesis_top_issues": [
+    { "rank": 1, "title": "A full-squad wipe costs less than losing one operator, so failing on purpose beats a successful extraction", "severity": "BLOCKING", "severity_disputed": false, "severity_raw": "BLOCKING", "flagged_by_round1": ["SD", "PP", "AQA", "NC"], "built_on_in_round2_by": ["BA", "FL"], "source_findings": ["SD-F1", "PP-F1", "AQA-F1", "NC-F4"], "cross_exam_outcome": "STRENGTHENED", "cross_exam_outcome_raw": "STRENGTHENED", "outcome_summary": "Found independently by four reviewers; Round 2 added friendly-fire reset (SD K1), branch scouting (AQA B), save-model bypass (PP, FL B), loss of XCOM differentiator (BA X1). NC calibrates it as an L312/L380 ambiguity. Diagnosis agreed; remedy disputed (Disagreement A)." },
+    { "rank": 2, "title": "No scope boundary: what exists, what week 8 delivers, and what gets cut are never stated", "severity": "BLOCKING", "severity_disputed": false, "severity_raw": "BLOCKING", "flagged_by_round1": ["FL", "BA"], "built_on_in_round2_by": [], "source_findings": ["FL-F1", "BA-F1"], "cross_exam_outcome": "SURVIVED", "cross_exam_outcome_raw": "SURVIVED INTACT, slightly STRENGTHENED", "outcome_summary": "Both held BLOCKING; BA adopted FL's review-time point. ~22 missions, 9 kits, generator, creator and HQ vs ~16 cycles uncontested. Disagreement only on week-8 target (Disagreement B)." },
+    { "rank": 3, "title": "Extraction rules contradict each other: L117 promises Downed operators are revived or explicitly left; L308 abandons them silently", "severity": "BLOCKING", "severity_disputed": false, "severity_raw": "BLOCKING", "flagged_by_round1": ["AQA", "PP"], "built_on_in_round2_by": ["NC", "SD"], "source_findings": ["AQA-F1", "PP-F2"], "cross_exam_outcome": "STRENGTHENED", "cross_exam_outcome_raw": "STRENGTHENED", "outcome_summary": "PP upgraded MAJOR to BLOCKING; AQA located the defect in the L308 rule, not input; NC gives L117 as tiebreaker; SD ties it to extraction being the only pressure phase (SD F5 upgraded)." },
+    { "rank": 4, "title": "No playthrough or test harness exists, so Level Builder, Testing and Balance agents' quality gates can't run", "severity": "BLOCKING", "severity_disputed": true, "severity_raw": "BLOCKING (FL) / MAJOR (BA)", "flagged_by_round1": ["FL", "BA"], "built_on_in_round2_by": ["AQA", "SD"], "source_findings": ["FL-F3", "BA-F5"], "cross_exam_outcome": "STRENGTHENED", "cross_exam_outcome_raw": "STRENGTHENED", "outcome_summary": "A sub-point in two Round 1 reviews; FL split and upgraded to BLOCKING, BA moved MINOR to MAJOR. At least five findings (AQA F4, AQA F5, SD F4, FL F2, FL F3) can't be checked without it." },
+    { "rank": 5, "title": "Branch choices permanently lock whole kits (Medic vs Captain), creating a 16-path balance matrix and removing the main safety tool on one path", "severity": "MAJOR", "severity_disputed": false, "severity_raw": "MAJOR", "flagged_by_round1": ["SD", "PP", "BA", "NC"], "built_on_in_round2_by": ["FL", "AQA"], "source_findings": ["SD-F4", "PP-F4", "BA-F3", "NC-F5"], "cross_exam_outcome": "STRENGTHENED", "cross_exam_outcome_raw": "STRENGTHENED", "outcome_summary": "NC upgraded F5 to MAJOR (tagline branch); SD added lose-it-twice spiral; AQA showed different exploit surfaces per path. Counterpoint: AQA B says wipe-scouting makes the lockout not truly blind (depends on Issue 1)." }
+  ],
+
+  "synthesis_near_misses": [
+    { "topic": "Undefined save/persistence model", "source_findings": ["FL-NEW1", "PP-F1"] },
+    { "topic": "Customization art cost", "source_findings": ["BA-F2", "FL-F5"] },
+    { "topic": "Economy has no numbers and no farming limit", "source_findings": ["SD-F2", "AQA-F3"] },
+    { "topic": "Objectives and NPCs have no failure rules", "source_findings": ["AQA-F5"] },
+    { "topic": "Unused setting hooks", "source_findings": ["NC-F1"] }
+  ],
+
+  "unresolved_disagreements": [
+    { "id": "A", "question": "What should a full-squad wipe cost?", "related_top_issue_rank": 1, "reviewers_involved": ["SD", "PP", "NC", "AQA", "FL"], "escalated_decision": "Choose the wipe outcome (capture, loss, or forfeit of operation/rewards). Decide at the same time on a roster floor, a save model, and how story-critical missions behave after failure." },
+    { "id": "B", "question": "Side missions: runtime generator, curated pool, or not in the slice at all?", "related_top_issue_rank": 2, "reviewers_involved": ["FL", "BA", "SD", "AQA"], "escalated_decision": "Decide whether side missions are in the week-8 slice and whether they come from a runtime generator or a finite curated pool; size the pool against progression and loss-recovery targets." },
+    { "id": "C", "question": "How should the bench get used: penalties, rewards, or nothing?", "related_top_issue_rank": null, "reviewers_involved": ["SD", "PP", "FL"], "escalated_decision": "Is roster rotation a designed pressure, and if so penalty- or reward-driven? Or explicitly cosmetic?" },
+    { "id": "D", "question": "Should narrative gaps be fixed by adding content or by cutting systems?", "related_top_issue_rank": null, "reviewers_involved": ["NC", "BA", "FL", "PP"], "escalated_decision": "What is the minimum authored narrative needed to carry the loss and rescue pillars within the eight-week scope?" },
+    { "id": "E", "question": "Severity of market positioning", "related_top_issue_rank": null, "reviewers_involved": ["BA", "FL"], "escalated_decision": "State whether commercial release is a goal or this is coursework only." },
+    { "id": "F", "question": "Severity of the undefined opening prisoner", "related_top_issue_rank": null, "reviewers_involved": ["NC", "PP", "AQA"], "escalated_decision": "Is the player an operator, the commander, or the prisoner? Can that character be permanently lost?" }
+  ],
+
+  "disagreement_positions": [
+    { "disagreement_id": "A", "reviewer_code": "SD", "position": "Cost must be at least as bad as losing one operator: Downed captured or lost on a wipe, or operation closes/escalates. Fix cost before any confirmation prompt.", "cited_as": "SD C1" },
+    { "disagreement_id": "A", "reviewer_code": "PP", "position": "Wipe should cost more than a successful extraction and less than four permanent deaths: capture plus time-limited rescue mission, or operation closes and rewards are lost.", "cited_as": "PP C1" },
+    { "disagreement_id": "A", "reviewer_code": "NC", "position": "Capture yes; 'closes' no, because Sever the Ring, Break the Bastion and Their Last Order are single-path story missions.", "cited_as": "NC C2" },
+    { "disagreement_id": "A", "reviewer_code": "AQA", "position": "Any wipe penalty without a roster floor turns an exploit into a softlock (Breakout single prisoner). AQA F3 becomes BLOCKING once a penalty is adopted.", "cited_as": "AQA Conflicts, Revisions" },
+    { "disagreement_id": "A", "reviewer_code": "FL", "position": "Use the cheapest rule; its real cost depends on the undefined save model.", "cited_as": "FL B" },
+
+    { "disagreement_id": "B", "reviewer_code": "FL", "position": "Curated pool of pre-generated, agent-verified missions; week-8 target is Act 1 plus one side-mission type.", "cited_as": "FL #1, E" },
+    { "disagreement_id": "B", "reviewer_code": "BA", "position": "Leave side missions out of the slice; if the pool is capped the generator is overbuilt. 'It cannot be both.'", "cited_as": "BA C2, C3" },
+    { "disagreement_id": "B", "reviewer_code": "SD", "position": "Finite pool fine only with a calculated pool size and a guaranteed-recruit floor.", "cited_as": "SD C4" },
+    { "disagreement_id": "B", "reviewer_code": "AQA", "position": "Fixed pool makes the roster softlock real once exhausted; unlimited generator trivialises loss. Decide generator and roster floor/ceiling together.", "cited_as": "AQA Conflicts" },
+
+    { "disagreement_id": "C", "reviewer_code": "SD", "position": "Add a carry-over cost such as recovery time; shared bench XP would make rotation cosmetic.", "cited_as": "SD #3, C2" },
+    { "disagreement_id": "C", "reviewer_code": "PP", "position": "Use rewards (partial bench XP, B-team side missions); injury timers add friction and double-punish anxious players without a campaign clock.", "cited_as": "PP C2" },
+    { "disagreement_id": "C", "reviewer_code": "FL", "position": "State that rotation is optional and the bench exists for loss recovery; only option that fits the schedule.", "cited_as": "FL Conflicts" },
+
+    { "disagreement_id": "D", "reviewer_code": "NC", "position": "Cutting the creator only works if cheap narrative replaces it: generated backgrounds, loss-reactive lines, minimal named voices; branch previews show people before kits.", "cited_as": "NC C1, C4, #3 revision" },
+    { "disagreement_id": "D", "reviewer_code": "BA", "position": "Each addition stacks scope on a BLOCKING plan; subtract instead (stop kit lockouts; text plus one voiced handler; antagonist via intercepted orders).", "cited_as": "BA C4" },
+    { "disagreement_id": "D", "reviewer_code": "FL", "position": "Same as BA: text plus one voiced handler, antagonist through intercepted orders.", "cited_as": "FL Conflicts" },
+    { "disagreement_id": "D", "reviewer_code": "PP", "position": "Moral framing on branches must come after kit lockouts are softened, or it increases resentment.", "cited_as": "PP C4" },
+
+    { "disagreement_id": "E", "reviewer_code": "BA", "position": "MAJOR: wipe exploit sinks the only hook against XCOM 2 and the insider premise is an unused differentiator.", "cited_as": "BA #4, X1, X2" },
+    { "disagreement_id": "E", "reviewer_code": "FL", "position": "MINOR until commercial release is a stated goal; positioning doesn't change what can be built in eight weeks.", "cited_as": "FL Conflicts" },
+
+    { "disagreement_id": "F", "reviewer_code": "NC", "position": "MAJOR: decides who the protagonist is; must be settled before any voiceover script.", "cited_as": "NC C3" },
+    { "disagreement_id": "F", "reviewer_code": "PP", "position": "MINOR, treated as a dependency: an avatar prisoner either can't die (undercuts loss) or can (breaks avatar framing).", "cited_as": "PP R5" },
+    { "disagreement_id": "F", "reviewer_code": "AQA", "position": "Also a missing game-over condition.", "cited_as": "AQA E" }
+  ],
+
+  "quick_wins": [
+    { "rank": 1, "action": "Make line 308 require the same explicit leave-behind commitment for Downed operators as for standing ones, matching line 117", "proposed_by": ["AQA"], "endorsed_by": ["PP", "NC"], "resolves": "Top issue #3 without new systems" },
+    { "rank": 2, "action": "Make mission objectives indestructible engine-wide", "proposed_by": ["FL"], "endorsed_by": [], "resolves": "Removes a class of dead-end states (AQA F5, AQA A); FL D calls it 'a one-line rule'" },
+    { "rank": 3, "action": "Let choice pairs vary rewards or timing but never lock a kit, or at minimum make any branch-opened kit always buyable", "proposed_by": ["FL", "BA", "SD"], "endorsed_by": [], "resolves": "Cuts the 16-path matrix to one target; addresses SD F4, PP F4 and part of NC F5" }
+  ],
+
+  "verdict": {
+    "ready_for_production": false,
+    "headline": "The board does not consider this document ready to drive production.",
+    "blocking_clusters": [
+      "Core loss rules contradict each other (L117 vs L308) and can be beaten by failing on purpose (Issues #1 and #3)",
+      "The eight-week plan has no inventory of existing work, no week-8 target and no cut list (Issue #2)"
+    ],
+    "single_most_important_change": "Write the inventory, the must/should/cut list and the week-8 target first, because they decide which loss-rule fix, side-mission model and narrative minimum the project can afford.",
+    "full_text": "The board does not consider this document ready to drive production. Two clusters block it. The core loss rules contradict each other (line 117 vs line 308) and can be beaten by failing on purpose (Issues #1 and #3), which undercuts the 'bring your operators home' pillar that every reviewer treated as central. And the eight-week plan has no stated inventory of existing work, no week-8 target and no cut list (Issue #2). The loss-rule cluster has the widest agreement, but its remedies are still disputed (Disagreement A), and FL and BA showed that each proposed remedy adds state, UI, save data and testing to a plan that hasn't cut anything yet. That makes the scope boundary the single change that matters most. Write the inventory, the must/should/cut list and the week-8 target first, because they decide which loss-rule fix, side-mission model and narrative minimum the project can afford."
+  },
+
+  "aggregate_counts": {
+    "total_round1_findings": 30,
+    "round2_new_findings": 1,
+    "findings_per_reviewer": { "SD": 5, "NC": 5, "PP": 5, "FL": 5, "AQA": 5, "BA": 5 },
+    "round1_findings_per_severity": { "BLOCKING": 5, "MAJOR": 20, "MINOR": 5 },
+    "post_round2_findings_per_severity": { "BLOCKING": 7, "MAJOR": 22, "MINOR": 1 },
+    "post_round2_severity_note": "Counts the 30 Round 1 findings at their post-Round-2 severity; split findings counted at their highest component (FL-F3 BLOCKING, FL-F5 MAJOR, BA-F5 MAJOR). Excludes FL-NEW1 (MAJOR). AQA-F3 counted MAJOR (conditional BLOCKING).",
+    "round1_blocking_by_reviewer": { "SD": 1, "NC": 0, "PP": 1, "FL": 1, "AQA": 1, "BA": 1 },
+    "post_round2_blocking_by_reviewer": { "SD": 1, "NC": 0, "PP": 2, "FL": 2, "AQA": 1, "BA": 1 },
+    "blocking_issues_in_synthesis_top5": 4,
+    "unresolved_disagreements": 6,
+    "cross_exam_conflicts": 23,
+    "cross_exam_connections": 33,
+    "cross_exam_connections_per_reviewer": { "SD": 5, "NC": 5, "PP": 6, "FL": 7, "AQA": 6, "BA": 4 },
+    "severity_upgrades": 6,
+    "severity_upgrades_list": ["SD-F5 MINOR->MAJOR", "NC-F5 MINOR->MAJOR", "PP-F2 MAJOR->BLOCKING", "FL-F3 MAJOR->BLOCKING (harness part)", "FL-F5 MINOR->MAJOR (customization part)", "BA-F5 MINOR->MAJOR (harness part)"],
+    "severity_downgrades": 0,
+    "sub_point_downgrades": 1,
+    "partial_withdrawals": 2,
+    "quick_wins": 3
+  }
+};
+</script>
+
+<script>
+(function(){
+'use strict';
+
+/* ------------------------------------------------------------------
+   Supplementary data NOT present in viz-data.json, transcribed from
+   viz-spec.md (Viz 3 short labels, Appendix C clusters). Used only for
+   the Band 2 cell labels and shading in the consensus matrix.
+   ------------------------------------------------------------------ */
+const SPEC_POS = {
+  A:{SD:['≥ one operator lost',1],PP:['capture + rescue mission',2],NC:['capture, never close',2],AQA:['only with roster floor',3],FL:['cheapest rule; save model first',4]},
+  B:{FL:['curated pool in slice',1],SD:['pool OK if sized',1],BA:['out of slice',2],AQA:['decide with roster floor',3]},
+  C:{SD:['penalties (recovery time)',1],PP:['rewards (bench XP)',2],FL:['declare optional',3]},
+  D:{NC:['add cheap content',1],BA:['subtract (stop lockouts)',2],FL:['subtract (stop lockouts)',2],PP:['framing after mechanics fix',3]},
+  E:{BA:['MAJOR',1],FL:['MINOR until goal stated',2]},
+  F:{NC:['MAJOR',1],PP:['MINOR (dependency)',2],AQA:['missing game-over rule',3]}
+};
+/* Spec Appendix A expectations, used only for console.warn cross-checks. */
+const APPX = {
+  r1:{BLOCKING:5,MAJOR:20,MINOR:5,total:30},
+  final:{BLOCKING:7,MAJOR:24,MINOR:3,total:34},
+  splits:['FL-F3','FL-F5','BA-F5'],
+  status:{'SD-F1':'widened','SD-F2':'widened','SD-F3':'held','SD-F4':'widened','SD-F5':'upgraded','NC-F1':'held','NC-F2':'held','NC-F3':'held','NC-F4':'narrowed','NC-F5':'upgraded','PP-F1':'held','PP-F2':'upgraded','PP-F3':'widened','PP-F4':'widened','PP-F5':'narrowed','FL-F1':'held','FL-F2':'held','FL-F3':'split','FL-F4':'held','FL-F5':'split','AQA-F1':'held','AQA-F2':'held','AQA-F3':'held','AQA-F4':'narrowed','AQA-F5':'widened','BA-F1':'widened','BA-F2':'held','BA-F3':'held','BA-F4':'held','BA-F5':'split'}
+};
+
+const D = DATA;
+const RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : {matches:false};
+const reduced = () => !!RM.matches;
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const SEVS = ['BLOCKING','MAJOR','MINOR'];
+const SL = {BLOCKING:'B', MAJOR:'M', MINOR:'m'};
+const SC = {BLOCKING:'b', MAJOR:'mj', MINOR:'mn'};
+const sevRank = s => s == null ? 3 : SEVS.indexOf(s);
+const REVS = D.reviewers.map(r => r.code);
+const REV = {}; D.reviewers.forEach(r => REV[r.code] = r);
+const STATUSES = ['upgraded','held','narrowed','widened','split','new'];
+const GLYPH = {upgraded:'▲', held:'●', narrowed:'◐', widened:'⊕', split:'⑂', new:'★', conditional:'⚑'};
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function plural(n, w, p){ return n + ' ' + (n === 1 ? w : (p || w + 's')); }
+function pill(sev){ return sev ? '<span class="pill bg-' + SC[sev] + '">' + sev + '</span>' : '<span class="muted" aria-label="none">—</span>'; }
+function chip(rc, outlined){ return '<span class="chip' + (outlined ? ' chip-o' : '') + '" title="' + esc(REV[rc].display_name) + '">' + rc + '</span>'; }
+function wrapN(text, max, n){
+  const words = String(text).split(/\s+/); const lines = []; let cur = '';
+  words.forEach(w => { const t = cur ? cur + ' ' + w : w; if (t.length <= max || !cur) cur = t; else { lines.push(cur); cur = w; } });
+  if (cur) lines.push(cur);
+  let out = lines;
+  if (lines.length > n){ out = lines.slice(0, n); let last = out[n-1]; if (last.length > max - 1) last = last.slice(0, max - 1); out[n-1] = last.replace(/[\s,;:]+$/, '') + '…'; }
+  return out.map(l => l.length > max ? l.slice(0, max - 1) + '…' : l);
+}
+function firstSentences(t, n){ const m = String(t).match(/[^.!?]+[.!?]+(\s|$)/g); return m ? m.slice(0, n).join('').trim() : t; }
+
+/* ---------------- derived model ---------------- */
+const revByUid = {};
+D.cross_exam_revisions.forEach(r => { (revByUid[r.finding_uid] = revByUid[r.finding_uid] || []).push(r); });
+
+const topByUid = {};
+function addTop(u, r){ if (!r) return; const a = topByUid[u] = topByUid[u] || []; if (a.indexOf(r) < 0) a.push(r); a.sort(); }
+D.synthesis_top_issues.forEach(t => t.source_findings.forEach(u => addTop(u, t.rank)));
+D.findings.forEach(f => addTop(f.uid, f.related_top_issue_rank));
+
+const ITEMS = [];
+D.findings.forEach(f => ITEMS.push({
+  uid:f.uid, rc:f.reviewer_code, num:f.finding_id, title:f.title, desc:f.description,
+  r1:f.severity_round1, fin:f.severity_after_round2, q:f.severity_round1_qualifier,
+  change:f.severity_change, ref:f.passage_reference, lines:f.lines_cited, isNew:false,
+  ord: REVS.indexOf(f.reviewer_code) * 100 + parseInt(String(f.finding_id).replace(/\D/g, ''), 10)
+}));
+D.round2_new_findings.forEach((n, j) => ITEMS.push({
+  uid:n.uid, rc:n.reviewer_code, num:n.finding_id, title:n.title, desc:n.description,
+  r1:null, fin:n.severity, q:null, change:'added in Round 2', ref:n.source_label, lines:null, isNew:true, note:n.note,
+  ord: REVS.indexOf(n.reviewer_code) * 100 + 90 + j
+}));
+ITEMS.sort((a, b) => a.ord - b.ord);
+const BYUID = {}; ITEMS.forEach(it => BYUID[it.uid] = it);
+const N_R1 = D.findings.length, N_NEW = D.round2_new_findings.length, N_ALL = ITEMS.length;
+
+ITEMS.forEach(it => {
+  const s = new Set(); const revs = revByUid[it.uid] || [];
+  it.conditional = null; it.splitNote = null;
+  if (it.isNew) s.add('new');
+  else {
+    if (sevRank(it.fin) < sevRank(it.r1)) s.add('upgraded');
+    if (sevRank(it.fin) > sevRank(it.r1)) s.add('downgraded');
+    revs.forEach(r => {
+      if (r.change_type === 'narrowed') s.add('narrowed');
+      if (r.change_type === 'widened') s.add('widened');
+      if (/^split/.test(r.change_type)) { s.add('split'); it.splitNote = r.note; }
+      if (r.change_type === 'conditional_upgrade') it.conditional = r.note;
+    });
+    if (!s.size) s.add('held');
+  }
+  it.status = s;
+  it.statusNote = revs.length ? revs.map(r => r.note).join(' ') : it.change;
+});
+
+/* Round 2 items and edges */
+const R2 = [];
+D.cross_exam_conflicts.forEach(c => R2.push({id:c.conflict_uid, author:c.raised_by, short:c.label, label:c.raised_by + ' ' + c.label, type:'conflict', topic:c.topic, text:c.disagreement, targets:c.target_findings, own:c.own_findings || [], cites:c.against_reviewers.slice()}));
+D.cross_exam_connections.forEach(k => R2.push({id:k.connection_uid, author:k.found_by, short:k.label, label:k.found_by + ' ' + k.label, type:'connection', topic:null, text:k.combined_insight, targets:k.findings_linked, own:[], cites:k.reviewers_involved.filter(r => r !== k.found_by)}));
+const EDGES = {}; // key from|to|type
+R2.forEach(it => it.cites.forEach(to => {
+  const k = it.author + '|' + to + '|' + it.type;
+  (EDGES[k] = EDGES[k] || {from:it.author, to:to, type:it.type, items:[]}).items.push(it);
+}));
+const EDGE_LIST = Object.keys(EDGES).map(k => EDGES[k]);
+const citedBy = {};
+ITEMS.forEach(it => { citedBy[it.uid] = R2.filter(x => x.author !== it.rc && x.targets.indexOf(it.uid) >= 0); });
+
+function r2ForFindings(uids){ return R2.filter(x => x.targets.some(t => uids.indexOf(t) >= 0)); }
+
+/* ---------------- state ---------------- */
+const S = {
+  reviewers:new Set(REVS), severities:new Set(SEVS), basis:'final', status:new Set(STATUSES),
+  search:'', top5only:false, changedOnly:false, showConf:true, showConn:true,
+  pinnedFinding:null, pinnedNode:null, openPanel:null, sort:{key:null, dir:null}, expandedRows:new Set()
+};
+function filterActive(){ return S.reviewers.size < REVS.length || S.severities.size < SEVS.length || S.status.size < STATUSES.length; }
+function revFilterActive(){ return S.reviewers.size < REVS.length; }
+function sevFor(it, basis){ return (basis || S.basis) === 'r1' ? it.r1 : it.fin; }
+function matches(it){
+  if (!S.reviewers.has(it.rc)) return false;
+  const s = sevFor(it);
+  if (s == null) { if (S.severities.size < SEVS.length) return false; }
+  else if (!S.severities.has(s)) return false;
+  let ok = false; it.status.forEach(st => { if (S.status.has(st)) ok = true; });
+  return ok;
+}
+function clearFilters(){ S.reviewers = new Set(REVS); S.severities = new Set(SEVS); S.status = new Set(STATUSES); S.pinnedNode = null; update(); }
+
+/* ---------------- tooltip ---------------- */
+const tip = $('#tooltip');
+const TIPS = {};
+let tipOwner = null;
+function showTip(html, ev, el){
+  tip.innerHTML = html; tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  let x, y;
+  if (ev && ev.clientX != null && ev.type.indexOf('mouse') === 0) { x = ev.clientX + 14; y = ev.clientY + 14; }
+  else { const r = el.getBoundingClientRect(); x = r.left; y = r.bottom + 8; }
+  if (x + tw > vw - 8) x = Math.max(8, vw - tw - 8);
+  if (y + th > vh - 8) y = Math.max(8, (ev && ev.clientY != null ? ev.clientY : el.getBoundingClientRect().top) - th - 12);
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip(){ tip.hidden = true; tipOwner = null; }
+function tipFor(el){ const k = el.getAttribute('data-tipkey'); const t = TIPS[k]; return typeof t === 'function' ? t() : t; }
+document.addEventListener('mouseover', e => { const el = e.target.closest && e.target.closest('[data-tipkey]'); if (!el) { if (tipOwner && tipOwner.matches && !tipOwner.contains(e.target)) hideTip(); return; } tipOwner = el; const h = tipFor(el); if (h) showTip(h, e, el); });
+document.addEventListener('mousemove', e => { if (tipOwner && !tip.hidden && e.target.closest && e.target.closest('[data-tipkey]') === tipOwner) showTip(tip.innerHTML, e, tipOwner); });
+document.addEventListener('mouseout', e => { const el = e.target.closest && e.target.closest('[data-tipkey]'); if (el && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTip(); });
+document.addEventListener('focusin', e => { const el = e.target.closest && e.target.closest('[data-tipkey]'); if (el && el === e.target) { tipOwner = el; const h = tipFor(el); if (h) showTip(h, e, el); } else hideTip(); });
+document.addEventListener('focusout', () => hideTip());
+
+/* keyboard activation for SVG role=button elements */
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if ((e.key === 'Enter' || e.key === ' ') && t.getAttribute && t.getAttribute('role') === 'button' && t.tagName !== 'BUTTON') {
+    e.preventDefault();
+    t.dispatchEvent(new MouseEvent('click', {bubbles:true, shiftKey:e.shiftKey}));
+  }
+  if (e.key === 'Escape') {
+    hideTip();
+    if (!$('#drawer').hidden) { closeDrawer(); return; }
+    if (S.pinnedFinding) { S.pinnedFinding = null; v4Update(); }
+    if (S.pinnedNode) { S.pinnedNode = null; v5Update(); }
+  }
+});
+
+function srTable(caption, heads, rows){
+  return '<table><caption>' + esc(caption) + '</caption><thead><tr>' + heads.map(h => '<th scope="col">' + esc(h) + '</th>').join('') + '</tr></thead><tbody>' +
+    rows.map(r => '<tr>' + r.map(c => '<td>' + esc(c) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+}
+
+/* ---------------- header ---------------- */
+function buildHeader(){
+  $('#src-link').href = D.metadata.source_document_url;
+  $('#rev-date').textContent = D.metadata.review_date;
+  $('#verdict-full').textContent = D.verdict.full_text;
+  const t = $('#verdict-toggle');
+  t.addEventListener('click', () => { const open = t.getAttribute('aria-expanded') === 'true'; t.setAttribute('aria-expanded', String(!open)); $('#verdict-full').hidden = open; t.textContent = open ? 'Read full verdict' : 'Hide full verdict'; });
+  const splitIds = ITEMS.filter(i => i.status.has('split')).map(i => i.uid);
+  $('#countnote').textContent = 'Counts: ' + N_R1 + ' Round 1 findings (' + REVS.length + ' reviewers × 5) + ' + N_NEW + ' added in Round 2 = ' + N_ALL + ' items. Findings split in Round 2 (' + splitIds.join(', ') + ') count once, at their highest part.';
+}
+
+/* ---------------- filter bar ---------------- */
+function updateFilterBar(){
+  const fb = $('#filterbar'); const on = filterActive();
+  fb.hidden = !on;
+  document.documentElement.style.setProperty('--fb-h', on ? fb.offsetHeight + 'px' : '0px');
+  if (!on) return;
+  const n = ITEMS.filter(matches).length;
+  $('#fb-count').textContent = 'Showing ' + n + ' of ' + N_ALL + ' items';
+  const parts = [];
+  if (S.reviewers.size < REVS.length) parts.push('Reviewer: ' + REVS.filter(r => S.reviewers.has(r)).join(', '));
+  if (S.severities.size < SEVS.length) parts.push((S.basis === 'r1' ? 'Round 1' : 'Final') + ' severity: ' + SEVS.filter(s => S.severities.has(s)).join(', '));
+  if (S.status.size < STATUSES.length) parts.push('Status: ' + STATUSES.filter(s => S.status.has(s)).join(', '));
+  $('#fb-desc').textContent = parts.join(' · ');
+}
+$('#fb-clear').addEventListener('click', clearFilters);
+
+/* ======================= VIZ 1 ======================= */
+const v1 = {shown:null, raf:0, geom:null};
+function v1Counts(basis){
+  const out = {}; REVS.concat('ALL').forEach(r => { out[r] = {BLOCKING:[], MAJOR:[], MINOR:[]}; });
+  ITEMS.forEach(it => { const s = sevFor(it, basis); if (!s) return; out[it.rc][s].push(it); out.ALL[s].push(it); });
+  return out;
+}
+function v1Nums(basis){ const c = v1Counts(basis); const o = {}; Object.keys(c).forEach(r => { o[r] = {}; SEVS.forEach(s => o[r][s] = c[r][s].length); }); return o; }
+function tot(o){ return SEVS.reduce((a, s) => a + (Array.isArray(o[s]) ? o[s].length : o[s]), 0); }
+function rowName(r){ return r === 'ALL' ? 'All reviewers' : REV[r].display_name; }
+function basisName(b){ return b === 'r1' ? 'Round 1' : 'Final'; }
+
+function v1Build(){
+  const box = $('#v1-chart'); const W = Math.max(300, box.clientWidth); const narrow = W < 620;
+  const labelW = narrow ? 52 : 210, totalW = narrow ? 0 : 160, barX = labelW + 10, barW = Math.max(120, W - barX - totalW - 10);
+  const rowH = 26, gap = 12, allH = 36;
+  const rows = []; let y = 6;
+  REVS.forEach(r => { rows.push({key:r, y:y, h:rowH}); y += rowH + gap; });
+  const ruleY = y + 2; y += 16;
+  rows.push({key:'ALL', y:y, h:allH}); y += allH + 6;
+  const H = y;
+  const nR = v1Nums('r1'), nF = v1Nums('final');
+  const maxRev = Math.max.apply(null, REVS.map(r => Math.max(tot(nR[r]), tot(nF[r]))));
+  const maxAll = Math.max(tot(nR.ALL), tot(nF.ALL));
+  v1.geom = {barX:barX, barW:barW, unitRev:barW / maxRev, unitAll:barW / maxAll, rows:rows, totalX:W - totalW + 12, narrow:narrow};
+  let s = '<svg width="' + W + '" height="' + H + '" role="group" aria-label="Severity breakdown by reviewer. Segments are buttons that filter the page." aria-describedby="v1-desc">';
+  s += '<line class="rule" x1="0" x2="' + W + '" y1="' + ruleY + '" y2="' + ruleY + '"></line>';
+  rows.forEach(r => {
+    const cy = r.y + r.h / 2 + 4.5;
+    const nm = rowName(r.key);
+    s += '<g class="v1-lab" data-row="' + r.key + '" role="button" tabindex="0" aria-label="' + esc(r.key === 'ALL' ? 'Show all reviewers' : 'Filter to ' + nm + ' only') + '">' +
+      '<rect x="0" y="' + r.y + '" width="' + labelW + '" height="' + r.h + '" fill="transparent"></rect>' +
+      '<text class="lab-abbr" x="0" y="' + cy + '">' + (r.key === 'ALL' ? (narrow ? 'All' : 'ALL') : r.key) + '</text>' +
+      (narrow ? '' : '<text class="lab-name" x="44" y="' + cy + '">' + esc(r.key === 'ALL' ? 'All reviewers' : nm) + '</text>') + '</g>';
+    SEVS.forEach(sev => {
+      s += '<rect class="seg f-' + SC[sev] + '" data-row="' + r.key + '" data-sev="' + sev + '" data-tipkey="v1|' + r.key + '|' + sev + '" x="' + barX + '" y="' + r.y + '" width="0" height="' + r.h + '" role="button" tabindex="0"></rect>';
+      s += '<text class="seg-t t-' + SC[sev] + '" data-row="' + r.key + '" data-sev="' + sev + '" y="' + cy + '" text-anchor="middle"></text>';
+      TIPS['v1|' + r.key + '|' + sev] = () => {
+        const list = v1Counts(S.basis)[r.key][sev];
+        return '<div class="th">' + esc(rowName(r.key)) + ' · ' + sev + ' · ' + basisName(S.basis) + '</div>' + plural(list.length, 'finding') +
+          (list.length ? '<ul>' + list.map(i => '<li><span class="mono">' + i.uid + '</span> ' + esc(i.title) + '</li>').join('') + '</ul>' : '');
+      };
+    });
+    if (!narrow) s += '<text class="v1-tot" data-row="' + r.key + '" x="' + v1.geom.totalX + '" y="' + cy + '"></text>';
+  });
+  s += '</svg>';
+  box.innerHTML = s;
+  v1Apply(v1.shown || v1Nums(S.basis), true);
+  v1Update();
+}
+function v1Apply(nums, settled){
+  const g = v1.geom; if (!g) return;
+  const box = $('#v1-chart');
+  g.rows.forEach(r => {
+    const unit = r.key === 'ALL' ? g.unitAll : g.unitRev; let x = g.barX;
+    SEVS.forEach(sev => {
+      const n = nums[r.key][sev]; const w = Math.max(0, n * unit);
+      const rect = box.querySelector('rect.seg[data-row="' + r.key + '"][data-sev="' + sev + '"]');
+      const txt = box.querySelector('text.seg-t[data-row="' + r.key + '"][data-sev="' + sev + '"]');
+      rect.setAttribute('x', x); rect.setAttribute('width', Math.max(0, w - 1));
+      const rn = Math.round(n);
+      txt.setAttribute('x', x + w / 2);
+      txt.textContent = w >= 34 ? SL[sev] + ' ' + rn : (w >= 18 ? String(rn) : '');
+      if (settled) {
+        const ids = v1Counts(S.basis)[r.key][sev].map(i => i.uid);
+        const zero = rn === 0;
+        rect.setAttribute('tabindex', zero ? '-1' : '0');
+        if (zero) rect.setAttribute('aria-hidden', 'true'); else rect.removeAttribute('aria-hidden');
+        rect.setAttribute('aria-label', rowName(r.key) + ', ' + sev + ', ' + basisName(S.basis) + ': ' + plural(rn, 'finding') + (ids.length ? ' (' + ids.join(', ') + ')' : '') + '. Activate to filter; Shift to add.');
+      }
+      x += w;
+    });
+    const t = box.querySelector('text.v1-tot[data-row="' + r.key + '"]');
+    if (t) { const n = nums[r.key]; t.textContent = 'B ' + Math.round(n.BLOCKING) + ' · M ' + Math.round(n.MAJOR) + ' · m ' + Math.round(n.MINOR) + '  (' + Math.round(n.BLOCKING + n.MAJOR + n.MINOR) + ')'; }
+  });
+}
+function v1Animate(){
+  const to = v1Nums(S.basis); const from = v1.shown;
+  cancelAnimationFrame(v1.raf);
+  if (reduced() || !from) { v1.shown = to; v1Apply(to, true); return; }
+  const t0 = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - t0) / 400); const e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const mid = {}; Object.keys(to).forEach(r => { mid[r] = {}; SEVS.forEach(s => mid[r][s] = from[r][s] + (to[r][s] - from[r][s]) * e); });
+    v1.shown = mid; v1Apply(mid, t >= 1);
+    if (t < 1) v1.raf = requestAnimationFrame(step); else v1.shown = to;
+  };
+  v1.raf = requestAnimationFrame(step);
+}
+function v1Update(){
+  const act = filterActive();
+  $$('#v1-chart rect.seg').forEach(r => {
+    const row = r.getAttribute('data-row'), sev = r.getAttribute('data-sev');
+    const on = (row === 'ALL' ? true : S.reviewers.has(row)) && S.severities.has(sev);
+    r.classList.toggle('faded', act && !on);
+    r.classList.toggle('active', act && on && (row !== 'ALL' || S.reviewers.size === REVS.length));
+  });
+  $$('[data-basis]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-basis') === S.basis)));
+}
+$('#v1-chart').addEventListener('click', e => {
+  const seg = e.target.closest('rect.seg');
+  if (seg) {
+    const row = seg.getAttribute('data-row'), sev = seg.getAttribute('data-sev');
+    if (e.shiftKey && filterActive()) {
+      if (row !== 'ALL') S.reviewers.add(row); else S.reviewers = new Set(REVS);
+      S.severities.add(sev);
+    } else {
+      const same = S.severities.size === 1 && S.severities.has(sev) && (row === 'ALL' ? S.reviewers.size === REVS.length : (S.reviewers.size === 1 && S.reviewers.has(row)));
+      if (same) { S.reviewers = new Set(REVS); S.severities = new Set(SEVS); }
+      else { S.reviewers = row === 'ALL' ? new Set(REVS) : new Set([row]); S.severities = new Set([sev]); }
+    }
+    update(); return;
+  }
+  const lab = e.target.closest('.v1-lab');
+  if (lab) {
+    const row = lab.getAttribute('data-row');
+    if (row === 'ALL' || (S.reviewers.size === 1 && S.reviewers.has(row))) S.reviewers = new Set(REVS); else S.reviewers = new Set([row]);
+    update();
+  }
+});
+function setBasis(b){ if (S.basis === b) return; S.basis = b; v1Animate(); update(); }
+$$('[data-basis]').forEach(b => b.addEventListener('click', () => setBasis(b.getAttribute('data-basis'))));
+function v1Static(){
+  const up = ITEMS.filter(i => i.r1 && sevRank(i.fin) < sevRank(i.r1));
+  const toB = up.filter(i => i.fin === 'BLOCKING');
+  const down = ITEMS.filter(i => i.r1 && sevRank(i.fin) > sevRank(i.r1));
+  const withdrawn = D.cross_exam_revisions.filter(r => r.change_type === 'withdrawn').length;
+  $('#v1-caption').textContent = 'Cross-examination raised ' + toB.length + ' findings to BLOCKING (' + toB.map(i => i.uid).join(', ') + '), upgraded ' + up.length + ' overall, downgraded ' + down.length + ', and withdrew ' + (withdrawn ? withdrawn : 'none') + '.';
+  const nR = v1Nums('r1').ALL, nF = v1Nums('final').ALL;
+  const nF30 = {BLOCKING:0, MAJOR:0, MINOR:0}; ITEMS.filter(i => !i.isNew).forEach(i => nF30[i.fin]++);
+  const newIds = ITEMS.filter(i => i.isNew).map(i => i.uid + ' (' + i.fin + ')');
+  $('#v1-caption-sub').textContent = 'Round 1: ' + N_R1 + ' findings, ' + nR.BLOCKING + ' B / ' + nR.MAJOR + ' M / ' + nR.MINOR + ' m. Final: ' + N_ALL + ' items = ' + N_R1 + ' Round 1 findings at final severity (' + nF30.BLOCKING + ' B / ' + nF30.MAJOR + ' M / ' + nF30.MINOR + ' m) + ' + N_NEW + ' added in Round 2 (' + newIds.join(', ') + '), giving ' + nF.BLOCKING + ' B / ' + nF.MAJOR + ' M / ' + nF.MINOR + ' m. Split findings count once at their highest part.';
+  const cR = v1Nums('r1'), cF = v1Nums('final');
+  $('#v1-desc').innerHTML = srTable('Findings by reviewer and severity, Round 1 and Final', ['Reviewer','R1 BLOCKING','R1 MAJOR','R1 MINOR','Final BLOCKING','Final MAJOR','Final MINOR'],
+    REVS.concat('ALL').map(r => [rowName(r), cR[r].BLOCKING, cR[r].MAJOR, cR[r].MINOR, cF[r].BLOCKING, cF[r].MAJOR, cF[r].MINOR]));
+}
+
+/* ======================= VIZ 2 ======================= */
+const DIS_BY_ISSUE = {}; D.unresolved_disagreements.forEach(d => { if (d.related_top_issue_rank) DIS_BY_ISSUE[d.related_top_issue_rank] = d; });
+function quickWinsFor(rank){
+  const t = D.synthesis_top_issues.filter(x => x.rank === rank)[0];
+  return D.quick_wins.filter(q => {
+    const m = q.resolves.match(/issue #(\d)/i); if (m && +m[1] === rank) return true;
+    const refs = (q.resolves.match(/\b(SD|NC|PP|FL|AQA|BA) F(\d)/g) || []).map(s => s.replace(' F', '-F'));
+    return refs.some(r => t.source_findings.indexOf(r) >= 0);
+  });
+}
+function issueRows(t){
+  const r1 = t.source_findings.map(u => BYUID[u]).filter(Boolean);
+  const r2 = r2ForFindings(t.source_findings).sort((a, b) => (a.type === b.type ? 0 : a.type === 'connection' ? -1 : 1) || REVS.indexOf(a.author) - REVS.indexOf(b.author));
+  const revs = []; t.source_findings.forEach(u => (revByUid[u] || []).forEach(r => revs.push(r)));
+  return {r1:r1, r2:r2, revs:revs};
+}
+function v2Build(){
+  const html = D.synthesis_top_issues.map(t => {
+    const rows = issueRows(t);
+    let sevHtml;
+    if (t.severity_disputed) {
+      const parts = t.severity_raw.split('/').map(s => s.trim());
+      sevHtml = '<span class="pill split" aria-label="Severity disputed: ' + esc(t.severity_raw) + '">' + parts.map(p => { const sv = SEVS.filter(x => p.indexOf(x) === 0)[0]; return '<span class="bg-' + SC[sv] + '">' + esc(p) + '</span>'; }).join('') + '</span>';
+    } else sevHtml = pill(t.severity);
+    const dis = DIS_BY_ISSUE[t.rank];
+    const meta = '<div class="card-meta">' + sevHtml +
+      '<span class="grp"><span class="grp-l">Flagged in R1</span>' + t.flagged_by_round1.map(r => chip(r)).join('') + '</span>' +
+      (t.built_on_in_round2_by.length ? '<span class="grp"><span class="grp-l">Built on in R2</span>' + t.built_on_in_round2_by.map(r => chip(r, true)).join('') + '</span>' : '<span class="grp"><span class="grp-l">Built on in R2</span><span class="muted">none</span></span>') +
+      '<span class="badge' + (t.cross_exam_outcome === 'SURVIVED' ? ' survived' : '') + '">' + esc(t.cross_exam_outcome_raw) + '</span>' +
+      (dis ? '<button class="linkchip" data-dis="' + dis.id + '">Remedy disputed → Disagreement ' + dis.id + '</button>' : '') +
+      '<span class="matchcount" data-mc="' + t.rank + '" hidden></span></div>';
+
+    const r1Html = rows.r1.map(it => {
+      const pd = splitNeeded(it.desc);
+      return '<li data-rev="' + it.rc + '"><div class="rowline">' + chip(it.rc) + ' <button class="row-toggle" data-jump="' + it.uid + '">' + it.uid + '</button> ' + pill(it.r1) +
+        '<span class="rt">' + esc(it.title) + '</span></div><div class="lines">' + esc(fmtLines(it)) + '</div>' +
+        '<details><summary>show text</summary><p>' + esc(pd.problem) + '</p>' + (pd.needed ? '<p><strong>Needed:</strong> ' + esc(pd.needed) + '</p>' : '') + '</details></li>';
+    }).join('');
+    const r2Html = rows.r2.map(x => '<li data-rev="' + x.author + '"><div class="rowline">' + chip(x.author) + ' <span class="mono">' + esc(x.label) + '</span> ' + typeTag(x.type) +
+      '<span class="rt">' + (x.topic ? '<strong>' + esc(x.topic) + '.</strong> ' : '') + esc(x.text) + '</span></div><div class="lines">cites ' + x.targets.join(', ') + '</div></li>').join('') +
+      rows.revs.map(r => '<li data-rev="' + r.reviewer_code + '"><div class="rowline">' + chip(r.reviewer_code) + ' <span class="mono">' + r.finding_uid + ' revision</span> <span class="tag tag-rev">Revision</span><span class="rt">' + esc(r.note) + '</span></div></li>').join('');
+    const finals = t.source_findings.map(u => BYUID[u]).filter(Boolean).map(it => {
+      const ch = it.r1 !== it.fin;
+      return '<li data-rev="' + it.rc + '"><span class="mono">' + it.uid + '</span>: ' + (ch ? it.r1 + ' → ' + it.fin + ' <span aria-hidden="true">' + (sevRank(it.fin) < sevRank(it.r1) ? '▲' : '▼') + '</span><span class="sr-only">' + (sevRank(it.fin) < sevRank(it.r1) ? 'upgraded' : 'downgraded') + '</span>' : 'held at ' + it.fin) +
+        (it.splitNote ? ' <span class="muted">(split: ' + esc(it.splitNote) + ')</span>' : '') + '</li>';
+    }).join('');
+    const qws = quickWinsFor(t.rank);
+    const body = '<div class="card-body" id="issue-' + t.rank + '-body" hidden><div class="tl">' +
+      '<h4>Round 1: original findings</h4><ul class="rows">' + r1Html + '</ul>' +
+      '<h4>Round 2: cross-examination</h4><p class="muted" style="font-size:14px;margin:0 0 6px">' + esc(t.outcome_summary) + '</p><ul class="rows">' + r2Html + '</ul>' +
+      '<h4>Final status</h4>' + (t.severity_disputed ? '<p style="margin:0 0 6px">Board severity: ' + esc(t.severity_raw) + '</p>' : '') + '<ul class="rows">' + finals + '</ul>' +
+      qws.map(q => '<div class="qw"><strong>Quick win ' + q.rank + ':</strong> ' + esc(q.action) + '. <span class="muted">Proposed by ' + q.proposed_by.join(', ') + (q.endorsed_by.length ? '; endorsed by ' + q.endorsed_by.join(', ') : '') + '.</span></div>').join('') +
+      '</div></div>';
+    return '<article class="card" id="issue-' + t.rank + '"><div class="card-head" data-rank="' + t.rank + '"><h3 class="card-h"><button class="card-toggle" aria-expanded="false" aria-controls="issue-' + t.rank + '-body"><span class="rank">#' + t.rank + '</span><span>' + esc(t.title) + '</span><span class="chev" aria-hidden="true">+</span></button></h3>' + meta + '</div>' + body + '</article>';
+  }).join('');
+  $('#v2-cards').innerHTML = html;
+  $('#v2-near').innerHTML = '<span>Just outside the top 5:</span>' + D.synthesis_near_misses.map(n => '<button data-jump="' + n.source_findings[0] + '" title="' + esc(n.source_findings.join(', ')) + '">' + esc(n.topic) + ' <span class="mono muted">' + n.source_findings.join(', ') + '</span></button>').join('');
+}
+function typeTag(type){ return type === 'conflict' ? '<span class="tag tag-conf">Conflict</span>' : '<span class="tag tag-conn">Connection</span>'; }
+function splitNeeded(desc){ const i = desc.indexOf('Needed:'); return i < 0 ? {problem:desc, needed:null} : {problem:desc.slice(0, i).trim(), needed:desc.slice(i + 7).trim()}; }
+function fmtLines(it){ if (it.lines) return it.lines.split(/,\s*/).map(x => 'L' + x).join(', '); if (it.isNew) return it.ref; return 'Cited by section/quote: ' + it.ref; }
+function toggleCard(rank, force){
+  const card = $('#issue-' + rank); const btn = $('.card-toggle', card); const body = $('.card-body', card);
+  const open = force != null ? force : btn.getAttribute('aria-expanded') !== 'true';
+  btn.setAttribute('aria-expanded', String(open)); body.hidden = !open; $('.chev', card).textContent = open ? '−' : '+';
+}
+$('#v2-cards').addEventListener('click', e => {
+  const dis = e.target.closest('[data-dis]'); if (dis) { openPanel(dis.getAttribute('data-dis'), true); return; }
+  const j = e.target.closest('[data-jump]'); if (j) { jumpToFinding(j.getAttribute('data-jump')); return; }
+  const head = e.target.closest('.card-head'); if (head) toggleCard(+head.getAttribute('data-rank'));
+});
+$('#v2-near').addEventListener('click', e => { const j = e.target.closest('[data-jump]'); if (j) jumpToFinding(j.getAttribute('data-jump')); });
+function v2Update(){
+  const act = revFilterActive();
+  $$('#v2-cards .card').forEach(card => {
+    const lis = $$('.rows li[data-rev]', card); let m = 0;
+    lis.forEach(li => { const ok = S.reviewers.has(li.getAttribute('data-rev')); if (ok) m++; li.classList.toggle('faded', act && !ok); });
+    const mc = $('.matchcount', card); mc.hidden = !act; mc.textContent = m + ' of ' + lis.length + ' rows match filter';
+  });
+}
+
+/* ======================= VIZ 3 ======================= */
+const POS_BY = {}; D.disagreement_positions.forEach(p => { (POS_BY[p.disagreement_id] = POS_BY[p.disagreement_id] || {})[p.reviewer_code] = p; });
+function v3Geom(W){
+  const labelW = 240, decW = 150, stub = 12;
+  const sel = REVS.filter(r => S.reviewers.has(r));
+  const avail = W - labelW - decW - stub * (REVS.length - sel.length);
+  const cw = sel.length ? avail / sel.length : 0;
+  let x = labelW; const cols = {};
+  REVS.forEach(r => { const on = S.reviewers.has(r); const w = on ? cw : stub; cols[r] = {x:x, w:w, on:on}; x += w; });
+  return {labelW:labelW, decW:decW, cols:cols, decX:x + 8, W:W, cw:cw};
+}
+function v3Build(){
+  const box = $('#v3-chart'); const W = Math.max(760, box.clientWidth); const g = v3Geom(W);
+  const charsPerLine = Math.max(10, Math.floor((g.cw - 12) / 6.4));
+  // header
+  let h = '<svg width="' + W + '" height="44" role="group" aria-label="Reviewer columns">';
+  REVS.forEach(r => {
+    const c = g.cols[r];
+    h += '<g class="v3-colh" data-col="' + r + '" tabindex="' + (c.on ? 0 : -1) + '" aria-label="' + esc(REV[r].display_name) + ' column">' +
+      '<rect x="' + (c.x + 2) + '" y="2" width="' + Math.max(0, c.w - 4) + '" height="40" fill="' + (c.on ? 'transparent' : 'var(--surface-2)') + '"></rect>' +
+      (c.on ? '<text class="svg-t svg-mono" font-weight="700" x="' + (c.x + c.w / 2) + '" y="20" text-anchor="middle">' + r + '</text>' +
+        (c.w > 100 ? '<text class="svg-m" x="' + (c.x + c.w / 2) + '" y="36" text-anchor="middle">' + esc(REV[r].display_name.replace('Technical ', '').replace('Production/', '')) + '</text>' : '') : '') + '</g>';
+  });
+  h += '<text class="svg-m" x="' + g.decX + '" y="28">Decision</text></svg>';
+
+  // band 1
+  const rowH = 52;
+  const issues = D.synthesis_top_issues;
+  let b1 = '<svg width="' + W + '" height="' + (issues.length * rowH + 4) + '" role="group" aria-label="Consensus on top issues">';
+  issues.forEach((t, i) => {
+    const y = i * rowH + 2;
+    const lines = wrapN(t.title, 33, 2);
+    b1 += '<g class="v3-rowlab" data-issue="' + t.rank + '" role="button" tabindex="0" aria-label="Issue #' + t.rank + ': ' + esc(t.title) + '. Open card.">' +
+      '<rect x="0" y="' + y + '" width="' + (g.labelW - 8) + '" height="' + (rowH - 6) + '" fill="transparent"></rect>' +
+      '<text class="svg-t svg-mono" font-weight="700" x="0" y="' + (y + 18) + '">#' + t.rank + '</text>' +
+      lines.map((l, k) => '<text class="svg-t" x="30" y="' + (y + 18 + k * 17) + '">' + esc(l) + '</text>').join('') + '</g>';
+    const rows = r2ForFindings(t.source_findings);
+    REVS.forEach(r => {
+      const c = g.cols[r]; const x = c.x + 3, w = Math.max(0, c.w - 6), yy = y + 3, hh = rowH - 12;
+      const flagged = t.source_findings.map(u => BYUID[u]).filter(it => it && it.rc === r);
+      const built = t.built_on_in_round2_by.indexOf(r) >= 0;
+      const key = 'v3|' + t.rank + '|' + r;
+      if (flagged.length) {
+        const it = flagged[0]; const sv = it.r1;
+        const up = flagged.some(f => sevRank(f.fin) < sevRank(f.r1)), dn = flagged.some(f => sevRank(f.fin) > sevRank(f.r1));
+        TIPS[key] = '<div class="th">' + r + ' · flagged in Round 1 · issue #' + t.rank + '</div>' + flagged.map(f => '<div><span class="mono">' + f.uid + '</span> (R1 ' + f.r1 + ', final ' + f.fin + '): ' + esc(f.title) + '</div><div class="muted">' + esc(firstSentences(f.desc, 2)) + '</div>').join('');
+        b1 += '<g class="v3-cell" data-col="' + r + '" data-tipkey="' + key + '" tabindex="' + (c.on ? 0 : -1) + '" aria-label="' + esc(r + ' flagged ' + flagged.map(f => f.uid + ' R1 ' + f.r1 + (f.fin !== f.r1 ? ', final ' + f.fin : '')).join('; ')) + '">' +
+          '<rect class="box f-' + SC[sv] + '" x="' + x + '" y="' + yy + '" width="' + w + '" height="' + hh + '" rx="2"></rect>' +
+          (c.on ? '<text class="t-' + SC[sv] + ' svg-mono" font-size="13" font-weight="700" x="' + (x + 8) + '" y="' + (yy + 17) + '">' + SL[sv] + '</text>' +
+            '<text class="t-' + SC[sv] + ' svg-mono" font-size="12" x="' + (x + 8) + '" y="' + (yy + 33) + '">' + flagged.map(f => f.uid).join(' ') + '</text>' +
+            (up || dn ? '<text class="t-' + SC[sv] + '" font-size="14" font-weight="700" x="' + (x + w - 8) + '" y="' + (yy + 17) + '" text-anchor="end">' + (up ? '↑' : '↓') + '</text>' : '') : '') + '</g>';
+      } else if (built) {
+        const mine = rows.filter(x2 => x2.author === r);
+        const lab = mine.length ? mine.map(m => m.short).join(', ') : 'R2';
+        TIPS[key] = '<div class="th">' + r + ' · built on in Round 2 · issue #' + t.rank + '</div>' + (mine.length ? mine.map(m => '<div><span class="mono">' + esc(m.label) + '</span> (' + m.type + '): ' + esc(m.text) + '</div>').join('') : '<div>Named by the synthesis as building on this issue; no ' + r + ' Round 2 item in viz-data.json cites its source findings directly.</div>');
+        b1 += '<g class="v3-cell" data-col="' + r + '" data-tipkey="' + key + '" tabindex="' + (c.on ? 0 : -1) + '" aria-label="' + esc(r + ' built on this in Round 2: ' + lab) + '">' +
+          '<rect class="box" x="' + x + '" y="' + yy + '" width="' + w + '" height="' + hh + '" rx="2" fill="url(#hatch)" stroke="var(--muted)"></rect>' +
+          (c.on ? '<text class="pt svg-mono" x="' + (x + 8) + '" y="' + (yy + 24) + '">' + esc(wrapN(lab, charsPerLine, 1)[0]) + '</text>' : '') + '</g>';
+      } else {
+        b1 += '<g class="v3-cell" data-col="' + r + '"><rect class="v3-empty" x="' + x + '" y="' + yy + '" width="' + w + '" height="' + hh + '" rx="2"></rect></g>';
+      }
+    });
+  });
+  b1 += '</svg>';
+
+  // band 2
+  let b2 = '';
+  const PSH = ['var(--p1)', 'var(--p2)', 'var(--p3)', 'var(--p4)'];
+  D.unresolved_disagreements.forEach(d => {
+    const pos = POS_BY[d.id] || {}; const spec = SPEC_POS[d.id] || {};
+    const clusters = new Set(); Object.keys(pos).forEach(r => clusters.add(spec[r] ? spec[r][1] : r));
+    const lines = wrapN(d.question, 33, 2);
+    let s = '<svg width="' + W + '" height="' + rowH + '" role="group" aria-label="Disagreement ' + d.id + '">';
+    s += '<g class="v3-rowlab" data-dis="' + d.id + '" role="button" tabindex="0" aria-expanded="' + (S.openPanel === d.id) + '" aria-controls="v3-panel-' + d.id + '" aria-label="Disagreement ' + d.id + ': ' + esc(d.question) + '. Toggle details.">' +
+      '<rect x="0" y="2" width="' + (g.labelW - 8) + '" height="' + (rowH - 6) + '" fill="transparent"></rect>' +
+      '<text class="svg-t svg-mono" font-weight="700" x="0" y="20">' + d.id + '</text>' +
+      lines.map((l, k) => '<text class="svg-t" x="30" y="' + (20 + k * 17) + '">' + esc(l) + '</text>').join('') + '</g>';
+    REVS.forEach(r => {
+      const c = g.cols[r]; const x = c.x + 3, w = Math.max(0, c.w - 6), yy = 5, hh = rowH - 12;
+      const p = pos[r];
+      if (!p) { s += '<g class="v3-cell" data-col="' + r + '"><rect class="v3-empty" x="' + x + '" y="' + yy + '" width="' + w + '" height="' + hh + '" rx="2"></rect></g>'; return; }
+      const sp = spec[r]; const cl = sp ? sp[1] : 1; const short = sp ? sp[0] : p.position.split(/\s+/).slice(0, 4).join(' ');
+      const key = 'v3d|' + d.id + '|' + r;
+      TIPS[key] = '<div class="th">' + r + ' · Disagreement ' + d.id + ' · position P' + cl + '</div>' + esc(p.position) + '<div class="muted" style="margin-top:4px">Cited as: ' + esc(p.cited_as) + '</div>';
+      const tl = wrapN(short, charsPerLine - 4, 2);
+      s += '<g class="v3-cell" data-col="' + r + '" data-tipkey="' + key + '" tabindex="' + (c.on ? 0 : -1) + '" aria-label="' + esc(r + ', position ' + cl + ': ' + short) + '">' +
+        '<rect class="box" x="' + x + '" y="' + yy + '" width="' + w + '" height="' + hh + '" rx="2" style="fill:' + PSH[(cl - 1) % 4] + '"></rect>' +
+        (c.on ? '<text class="svg-m svg-mono" x="' + (x + w - 6) + '" y="' + (yy + 13) + '" text-anchor="end">P' + cl + '</text>' +
+          tl.map((l, k) => '<text class="svg-t" font-size="12" x="' + (x + 7) + '" y="' + (yy + 15 + k * 15) + '">' + esc(l) + '</text>').join('') : '') + '</g>';
+    });
+    s += '<text class="svg-t svg-mono" font-size="12" font-weight="700" x="' + g.decX + '" y="22">DECISION NEEDED</text>' +
+      '<text class="svg-m" x="' + g.decX + '" y="38">' + plural(clusters.size, 'position') + '</text>';
+    s += '</svg>';
+    const ppl = Object.keys(pos).sort((a, b) => REVS.indexOf(a) - REVS.indexOf(b)).map(r => '<p>' + chip(r) + ' ' + esc(pos[r].position) + ' <span class="muted mono" style="font-size:12px">(' + esc(pos[r].cited_as) + ')</span></p>').join('');
+    s += '<div class="v3-panel" id="v3-panel-' + d.id + '" ' + (S.openPanel === d.id ? '' : 'hidden') + '><p><strong>' + d.id + '. ' + esc(d.question) + '</strong>' + (d.related_top_issue_rank ? ' <span class="muted">(related to issue #' + d.related_top_issue_rank + ')</span>' : '') + '</p>' + ppl +
+      '<div class="esc"><strong>Escalated decision:</strong> ' + esc(d.escalated_decision) + '</div></div>';
+    b2 += s;
+  });
+
+  box.innerHTML = h + '<div class="v3-band-h">Consensus: top issues</div>' + b1 + '<div class="v3-band-h">Escalated decisions: unresolved</div>' + b2;
+
+  // sr table
+  $('#v3-desc').innerHTML = srTable('Top issues by reviewer', ['Issue'].concat(REVS), issues.map(t => ['#' + t.rank + ' ' + t.title].concat(REVS.map(r => {
+    const f = t.source_findings.map(u => BYUID[u]).filter(it => it && it.rc === r);
+    if (f.length) return 'Flagged R1: ' + f.map(x => x.uid + ' ' + x.r1).join(', ');
+    if (t.built_on_in_round2_by.indexOf(r) >= 0) return 'Built on in R2';
+    return '';
+  })))) + srTable('Unresolved disagreements: positions by reviewer', ['Disagreement'].concat(REVS), D.unresolved_disagreements.map(d => [d.id + ' ' + d.question].concat(REVS.map(r => (POS_BY[d.id] || {})[r] ? (POS_BY[d.id][r].position) : ''))));
+}
+function openPanel(id, scroll){
+  S.openPanel = (S.openPanel === id && !scroll) ? null : id;
+  $$('#v3-chart .v3-panel').forEach(p => p.hidden = p.id !== 'v3-panel-' + S.openPanel);
+  $$('#v3-chart .v3-rowlab[data-dis]').forEach(g => g.setAttribute('aria-expanded', String(g.getAttribute('data-dis') === S.openPanel)));
+  if (scroll && S.openPanel) { const p = $('#v3-panel-' + id); p.previousElementSibling.scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'center'}); const lab = $('#v3-chart .v3-rowlab[data-dis="' + id + '"]'); if (lab) lab.focus({preventScroll:true}); }
+}
+$('#v3-chart').addEventListener('click', e => {
+  const lab = e.target.closest('.v3-rowlab'); if (!lab) return;
+  if (lab.hasAttribute('data-issue')) { const r = lab.getAttribute('data-issue'); toggleCard(r, true); const c = $('#issue-' + r); c.scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'start'}); $('.card-toggle', c).focus({preventScroll:true}); }
+  else openPanel(lab.getAttribute('data-dis'));
+});
+function v3Hl(col){ $$('#v3-chart [data-col]').forEach(el => el.classList.toggle('v3-dim', !!col && el.getAttribute('data-col') !== col)); }
+$('#v3-chart').addEventListener('mouseover', e => { const h = e.target.closest('.v3-colh'); if (h) v3Hl(h.getAttribute('data-col')); });
+$('#v3-chart').addEventListener('mouseout', e => { const h = e.target.closest('.v3-colh'); if (h && (!e.relatedTarget || !h.contains(e.relatedTarget))) v3Hl(null); });
+$('#v3-chart').addEventListener('focusin', e => { const h = e.target.closest('.v3-colh'); v3Hl(h ? h.getAttribute('data-col') : null); });
+
+/* ======================= VIZ 4 ======================= */
+function byOrd(a, b){ return a.ord - b.ord; }
+function glyphs(it){ const g = []; ['upgraded','held','narrowed','widened','split','new'].forEach(s => { if (it.status.has(s)) g.push(GLYPH[s]); }); if (it.conditional) g.push(GLYPH.conditional); return g.join(''); }
+function statusText(it){ const a = []; STATUSES.forEach(s => { if (it.status.has(s)) a.push(s); }); if (it.conditional) a.push('conditional'); return a.join(', '); }
+function v4Build(){
+  const box = $('#v4-chart'); const W = Math.max(560, box.clientWidth);
+  const leftX = 180, laneW = 120, rightX = W - laneW - 140, newX = rightX - 90, top = 56, slotH = 15, gap = 30;
+  const L = {}, R = {}; SEVS.forEach(s => { L[s] = ITEMS.filter(i => i.r1 === s).sort(byOrd); R[s] = ITEMS.filter(i => i.fin === s).sort(byOrd); });
+  const slots = {}; SEVS.forEach(s => slots[s] = Math.max(L[s].length, R[s].length, 1));
+  let y = top; const bandY = {}; SEVS.forEach(s => { bandY[s] = y; y += slots[s] * slotH + gap; });
+  const H = y - gap + 16;
+  const yL = {}, yR = {};
+  SEVS.forEach(s => { L[s].forEach((it, i) => yL[it.uid] = bandY[s] + i * slotH + slotH / 2); R[s].forEach((it, i) => yR[it.uid] = bandY[s] + i * slotH + slotH / 2); });
+  const laneX = W - laneW + 10;
+  let s = '<svg width="' + W + '" height="' + H + '" role="group" aria-label="Slope chart: each finding from Round 1 severity to Final severity" aria-describedby="v4-desc">';
+  s += '<text class="axis-t" x="' + leftX + '" y="22" text-anchor="middle">Round 1</text><text class="svg-m" x="' + leftX + '" y="40" text-anchor="middle">' + N_R1 + ' findings</text>';
+  s += '<text class="axis-t" x="' + rightX + '" y="22" text-anchor="middle">Final</text><text class="svg-m" x="' + rightX + '" y="40" text-anchor="middle">' + N_ALL + ' items</text>';
+  s += '<text class="axis-t" x="' + (laneX + (laneW - 20) / 2) + '" y="22" text-anchor="middle">Withdrawn</text>';
+  SEVS.forEach(sv => {
+    const by = bandY[sv], bh = slots[sv] * slotH;
+    s += '<rect class="f-' + SC[sv] + '" x="' + (leftX - 2) + '" y="' + by + '" width="4" height="' + bh + '"></rect>';
+    s += '<rect class="f-' + SC[sv] + '" x="' + (rightX - 2) + '" y="' + by + '" width="4" height="' + bh + '"></rect>';
+    s += '<text class="band-t" x="0" y="' + (by + 12) + '">' + SL[sv] + ' ' + sv + '</text>';
+    s += '<text class="svg-m svg-mono" x="0" y="' + (by + 28) + '">' + L[sv].length + ' → ' + R[sv].length + '</text>';
+  });
+  const withdrawn = D.cross_exam_revisions.filter(r => r.change_type === 'withdrawn').length;
+  s += '<rect x="' + laneX + '" y="' + top + '" width="' + (laneW - 20) + '" height="' + (H - top - 16) + '" fill="none" stroke="var(--rule)" stroke-dasharray="4 4"></rect>';
+  s += '<text class="svg-m" x="' + (laneX + (laneW - 20) / 2) + '" y="' + (top + (H - top) / 2) + '" text-anchor="middle">' + withdrawn + ' withdrawn</text>';
+  ITEMS.forEach(it => {
+    const changed = it.isNew || it.r1 !== it.fin;
+    const cls = SC[it.fin]; const yr = yR[it.uid];
+    const label = it.uid + ': ' + (it.isNew ? 'new in Round 2, final ' + it.fin : 'Round 1 ' + it.r1 + ', final ' + it.fin) + '. Status: ' + statusText(it) + '. ' + it.title;
+    s += '<g class="fg" data-uid="' + it.uid + '" data-changed="' + changed + '" data-tipkey="v4|' + it.uid + '" role="button" tabindex="0" aria-label="' + esc(label) + '. Activate to pin and jump to table row.">';
+    if (it.isNew) {
+      s += '<line x1="' + (newX + 6) + '" y1="' + yr + '" x2="' + (rightX - 7) + '" y2="' + yr + '" class="ln chg s-' + cls + '" stroke-dasharray="4 3" marker-end="url(#arr-' + cls + ')"></line>';
+      s += '<path d="M' + newX + ',' + (yr - 6) + ' l6,6 l-6,6 l-6,-6 z" class="f-' + cls + '"></path>';
+      s += '<text class="lbl l" x="' + (newX - 10) + '" y="' + (yr + 4) + '" text-anchor="end">New in R2</text>';
+      s += '<line x1="' + (newX + 6) + '" y1="' + yr + '" x2="' + rightX + '" y2="' + yr + '" stroke="transparent" stroke-width="12" pointer-events="stroke"></line>';
+    } else {
+      const yl = yL[it.uid];
+      s += '<line x1="' + leftX + '" y1="' + yl + '" x2="' + (changed ? rightX - 7 : rightX) + '" y2="' + yr + '" class="ln ' + (changed ? 'chg s-' + cls : 'held') + '"' + (changed ? ' marker-end="url(#arr-' + cls + ')"' : '') + '></line>';
+      s += '<line x1="' + leftX + '" y1="' + yl + '" x2="' + rightX + '" y2="' + yr + '" stroke="transparent" stroke-width="10" pointer-events="stroke"></line>';
+      s += '<circle cx="' + leftX + '" cy="' + yl + '" r="4" class="f-' + SC[it.r1] + '" stroke="var(--bg)" stroke-width="1"></circle>';
+      s += '<text class="lbl l" x="' + (leftX - 10) + '" y="' + (yl + 4) + '" text-anchor="end">' + it.uid + '</text>';
+    }
+    s += '<circle cx="' + rightX + '" cy="' + yr + '" r="4.5" class="f-' + cls + '" stroke="var(--bg)" stroke-width="1"></circle>';
+    s += '<text class="lbl" x="' + (rightX + 10) + '" y="' + (yr + 4) + '">' + esc(glyphs(it)) + ' ' + it.uid + '</text>';
+    s += '</g>';
+    TIPS['v4|' + it.uid] = '<div class="th">' + it.uid + ' · ' + esc(REV[it.rc].display_name) + '</div><div>' + esc(it.title) + '</div><div style="margin-top:4px">' +
+      (it.isNew ? 'New in Round 2 → Final ' + it.fin : 'R1 ' + it.r1 + ' → Final ' + it.fin) + '</div><div class="muted">Status: ' + esc(statusText(it)) + '</div><div style="margin-top:4px">' + esc(it.statusNote) + '</div>' +
+      (it.conditional ? '<div style="margin-top:4px">⚑ ' + esc(it.conditional) + '</div>' : '');
+  });
+  s += '</svg>';
+  box.innerHTML = s;
+  v4Update();
+}
+function v4Update(){
+  const svg = $('#v4-chart svg'); if (!svg) return;
+  svg.classList.toggle('pinned', !!S.pinnedFinding);
+  $$('#v4-chart .fg').forEach(g => {
+    const it = BYUID[g.getAttribute('data-uid')];
+    g.classList.toggle('dim', filterActive() && !matches(it));
+    g.classList.toggle('gone', S.changedOnly && g.getAttribute('data-changed') !== 'true');
+    g.classList.toggle('pin', S.pinnedFinding === it.uid);
+  });
+  $('#v4-changed').setAttribute('aria-pressed', String(S.changedOnly));
+  $('#v4-all').setAttribute('aria-pressed', String(!S.changedOnly));
+}
+$('#v4-chart').addEventListener('mouseover', e => { const g = e.target.closest('.fg'); const svg = $('#v4-chart svg'); if (!svg) return; $$('#v4-chart .fg.hl').forEach(x => { if (x !== g) x.classList.remove('hl'); }); if (g) { g.classList.add('hl'); svg.classList.add('hovering'); } });
+$('#v4-chart').addEventListener('mouseleave', () => { const svg = $('#v4-chart svg'); if (svg) svg.classList.remove('hovering'); $$('#v4-chart .fg.hl').forEach(x => x.classList.remove('hl')); });
+$('#v4-chart').addEventListener('focusin', e => { const g = e.target.closest('.fg'); const svg = $('#v4-chart svg'); if (g && svg) { $$('#v4-chart .fg.hl').forEach(x => x.classList.remove('hl')); g.classList.add('hl'); svg.classList.add('hovering'); } });
+$('#v4-chart').addEventListener('focusout', () => { const svg = $('#v4-chart svg'); if (svg) svg.classList.remove('hovering'); $$('#v4-chart .fg.hl').forEach(x => x.classList.remove('hl')); });
+$('#v4-chart').addEventListener('click', e => {
+  const g = e.target.closest('.fg'); if (!g) return;
+  const uid = g.getAttribute('data-uid');
+  if (S.pinnedFinding === uid) { S.pinnedFinding = null; v4Update(); return; }
+  S.pinnedFinding = uid; v4Update(); jumpToFinding(uid, true);
+});
+$('#v4-changed').addEventListener('click', () => { S.changedOnly = true; v4Update(); });
+$('#v4-all').addEventListener('click', () => { S.changedOnly = false; v4Update(); });
+function v4Static(){
+  const cnt = s => ITEMS.filter(i => i.status.has(s)).length;
+  const withdrawn = D.cross_exam_revisions.filter(r => r.change_type === 'withdrawn').length;
+  $('#v4-caption').textContent = cnt('upgraded') + ' upgraded · ' + cnt('narrowed') + ' narrowed · ' + cnt('widened') + ' widened · ' + cnt('split') + ' split · ' + cnt('new') + ' new · ' + withdrawn + ' withdrawn · ' + cnt('held') + ' held';
+  $('#v4-desc').innerHTML = srTable('Each finding: Round 1 severity, final severity, status', ['ID','Reviewer','Round 1','Final','Status'], ITEMS.map(i => [i.uid, i.rc, i.r1 || 'new', i.fin, statusText(i)]));
+}
+
+/* ======================= VIZ 5 ======================= */
+const written = {}, wroteConf = {}, wroteConn = {}, incoming = {};
+REVS.forEach(r => { written[r] = 0; wroteConf[r] = 0; wroteConn[r] = 0; incoming[r] = 0; });
+R2.forEach(x => { written[x.author]++; if (x.type === 'conflict') wroteConf[x.author]++; else wroteConn[x.author]++; });
+EDGE_LIST.forEach(e => incoming[e.to] += e.items.length);
+function v5Build(){
+  const box = $('#v5-chart'); const avail = box.clientWidth || 640;
+  const dw = Math.max(320, Math.min(640, avail)), dh = 520;
+  const cx = dw / 2, cy = dh / 2, R = Math.min(dw, dh) / 2 - 78;
+  const wmin = Math.min.apply(null, REVS.map(r => written[r])), wmax = Math.max.apply(null, REVS.map(r => written[r]));
+  const P = {};
+  REVS.forEach((r, i) => { const a = -Math.PI / 2 + i * Math.PI / 3; P[r] = {x:cx + R * Math.cos(a), y:cy + R * Math.sin(a), r:wmax === wmin ? 36 : 28 + 16 * (written[r] - wmin) / (wmax - wmin)}; });
+  let s = '<svg width="' + dw + '" height="' + dh + '" role="group" aria-label="Cross-examination network between six reviewers" aria-describedby="v5-desc">';
+  EDGE_LIST.forEach((e, idx) => {
+    const a = P[e.from], b = P[e.to]; const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+    const nx = -dy / len, ny = dx / len; const off = e.type === 'conflict' ? 24 : 54;
+    const mx = (a.x + b.x) / 2 + nx * off, my = (a.y + b.y) / 2 + ny * off;
+    const u0x = mx - a.x, u0y = my - a.y, l0 = Math.hypot(u0x, u0y);
+    const u2x = mx - b.x, u2y = my - b.y, l2 = Math.hypot(u2x, u2y);
+    const sx = a.x + u0x / l0 * (a.r + 2), sy = a.y + u0y / l0 * (a.r + 2);
+    const ex = b.x + u2x / l2 * (b.r + 4), ey = b.y + u2y / l2 * (b.r + 4);
+    const d = 'M' + sx.toFixed(1) + ',' + sy.toFixed(1) + ' Q' + mx.toFixed(1) + ',' + my.toFixed(1) + ' ' + ex.toFixed(1) + ',' + ey.toFixed(1);
+    const n = e.items.length; const sw = 1.5 + 1.5 * n;
+    const tname = e.type === 'conflict' ? plural(n, 'conflict') : plural(n, 'connection');
+    const key = 'v5e|' + idx; e.idx = idx;
+    TIPS[key] = '<div class="th">' + e.from + ' → ' + e.to + ' · ' + tname + '</div><ul>' + e.items.map(x => '<li><span class="mono">' + esc(x.label) + '</span> ' + esc(x.topic ? x.topic : firstSentences(x.text, 1)) + '</li>').join('') + '</ul>';
+    s += '<g class="edge ' + (e.type === 'conflict' ? 'e-conf' : 'e-conn') + '" data-idx="' + idx + '" data-from="' + e.from + '" data-to="' + e.to + '" data-type="' + e.type + '" data-tipkey="' + key + '" role="button" tabindex="0" aria-label="' + esc(e.from + ' to ' + e.to + ', ' + tname + ': ' + e.items.map(x => x.label).join(', ') + '. Activate to list items.') + '">' +
+      '<path class="vis" d="' + d + '" stroke-width="' + sw + '" marker-end="url(#arr-' + (e.type === 'conflict' ? 'conf' : 'conn') + ')"></path>' +
+      '<path d="' + d + '" fill="none" stroke="transparent" stroke-width="' + Math.max(12, sw + 6) + '" pointer-events="stroke"></path></g>';
+  });
+  REVS.forEach(r => {
+    const p = P[r]; const key = 'v5n|' + r;
+    TIPS[key] = () => '<div class="th">' + r + ' · ' + esc(REV[r].display_name) + '</div>Wrote ' + plural(written[r], 'R2 item') + ' (' + plural(wroteConf[r], 'conflict') + ', ' + plural(wroteConn[r], 'connection') + ') · Cited by others ' + incoming[r] + ' times';
+    const nameY = p.y + p.r + 16;
+    s += '<g class="node" data-node="' + r + '" data-tipkey="' + key + '" role="button" tabindex="0" aria-pressed="' + (S.pinnedNode === r) + '" aria-label="' + esc(REV[r].display_name + ': wrote ' + written[r] + ' Round 2 items, cited ' + incoming[r] + ' times. Activate to filter to this reviewer.') + '">' +
+      '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + p.r.toFixed(1) + '"></circle>' +
+      '<text class="nabbr" x="' + p.x.toFixed(1) + '" y="' + (p.y + 5).toFixed(1) + '" text-anchor="middle">' + r + '</text>' +
+      '<text class="nname" x="' + p.x.toFixed(1) + '" y="' + nameY.toFixed(1) + '" text-anchor="middle">' + esc(REV[r].display_name) + '</text></g>';
+  });
+  s += '</svg>';
+  box.innerHTML = s;
+  v5Update();
+}
+function v5Side(){
+  const pairs = {};
+  EDGE_LIST.forEach(e => { const k = [e.from, e.to].sort((a, b) => REVS.indexOf(a) - REVS.indexOf(b)).join('↔'); const p = pairs[k] = pairs[k] || {k:k, total:0, conf:0, conn:0}; p.total += e.items.length; if (e.type === 'conflict') p.conf += e.items.length; else p.conn += e.items.length; });
+  const plist = Object.keys(pairs).map(k => pairs[k]);
+  const busiest = plist.slice().sort((a, b) => b.total - a.total || b.conf - a.conf).slice(0, 3);
+  const confPairs = plist.slice().sort((a, b) => b.conf - a.conf).filter((p, i, arr) => p.conf > 0 && p.conf >= arr[Math.min(1, arr.length - 1)].conf);
+  const mostCited = REVS.slice().sort((a, b) => incoming[b] - incoming[a]);
+  const mostConn = REVS.slice().sort((a, b) => wroteConn[b] - wroteConn[a])[0];
+  const nConf = R2.filter(x => x.type === 'conflict').length, nConn = R2.filter(x => x.type === 'connection').length;
+  $('#v5-side').innerHTML =
+    '<h3>Key</h3><p style="margin:0 0 6px"><span class="key-line conf"></span>Conflict (dashed)</p><p style="margin:0 0 6px"><span class="key-line"></span>Connection (solid)</p>' +
+    '<p class="muted" style="margin:0 0 18px">' + nConf + ' conflict items and ' + nConn + ' connection items. An item that cites several reviewers draws one edge to each, so edges total ' + EDGE_LIST.reduce((a, e) => a + e.items.length, 0) + '.</p>' +
+    '<h3>Busiest pairs (both directions)</h3><ol>' + busiest.map(p => '<li><span class="mono">' + p.k + '</span>: ' + p.total + ' (' + plural(p.conf, 'conflict') + ', ' + plural(p.conn, 'connection') + ')</li>').join('') + '</ol>' +
+    '<h3>Densest conflict pairs</h3><ol>' + confPairs.map(p => '<li><span class="mono">' + p.k + '</span>: ' + plural(p.conf, 'conflict') + '</li>').join('') + '</ol>' +
+    '<h3>Facts</h3><ol style="list-style:none;padding:0"><li>Most cited: <span class="mono">' + mostCited[0] + '</span> (' + incoming[mostCited[0]] + '), then <span class="mono">' + mostCited[1] + '</span> (' + incoming[mostCited[1]] + ')</li><li>Most connections written: <span class="mono">' + mostConn + '</span> (' + wroteConn[mostConn] + ')</li></ol>';
+  $('#v5-desc').innerHTML = srTable('Cross-examination edges', ['From','To','Type','Items'], EDGE_LIST.map(e => [e.from, e.to, e.type, e.items.map(x => x.label).join(', ')]));
+}
+function v5Update(){
+  const svg = $('#v5-chart svg'); if (!svg) return;
+  const act = revFilterActive();
+  $$('#v5-chart .edge').forEach(g => {
+    const f = g.getAttribute('data-from'), t = g.getAttribute('data-to'), ty = g.getAttribute('data-type');
+    g.classList.toggle('off', (ty === 'conflict' && !S.showConf) || (ty === 'connection' && !S.showConn));
+    g.classList.toggle('dim', act && !S.reviewers.has(f) && !S.reviewers.has(t));
+    g.classList.toggle('hl', !!S.pinnedNode && (f === S.pinnedNode || t === S.pinnedNode));
+  });
+  $$('#v5-chart .node').forEach(n => { const r = n.getAttribute('data-node'); n.classList.toggle('pin', S.pinnedNode === r); n.classList.toggle('hl', S.pinnedNode === r); n.setAttribute('aria-pressed', String(S.pinnedNode === r)); });
+  svg.classList.toggle('hovering', !!S.pinnedNode);
+  $('#v5-conf').setAttribute('aria-pressed', String(S.showConf));
+  $('#v5-conn').setAttribute('aria-pressed', String(S.showConn));
+}
+function v5Hover(node, edge){
+  const svg = $('#v5-chart svg'); if (!svg || S.pinnedNode) return;
+  $$('#v5-chart .hl').forEach(x => x.classList.remove('hl'));
+  if (!node && !edge) { svg.classList.remove('hovering'); return; }
+  svg.classList.add('hovering');
+  if (node) { const r = node.getAttribute('data-node'); node.classList.add('hl'); $$('#v5-chart .edge').forEach(g => { if (g.getAttribute('data-from') === r || g.getAttribute('data-to') === r) g.classList.add('hl'); }); $$('#v5-chart .node').forEach(n => { const x = n.getAttribute('data-node'); if ($$('#v5-chart .edge.hl').some(g => g.getAttribute('data-from') === x || g.getAttribute('data-to') === x)) n.classList.add('hl'); }); }
+  if (edge) { edge.classList.add('hl'); $$('#v5-chart .node').forEach(n => { const x = n.getAttribute('data-node'); if (x === edge.getAttribute('data-from') || x === edge.getAttribute('data-to')) n.classList.add('hl'); }); }
+}
+$('#v5-chart').addEventListener('mouseover', e => v5Hover(e.target.closest('.node'), e.target.closest('.edge')));
+$('#v5-chart').addEventListener('mouseleave', () => v5Hover(null, null));
+$('#v5-chart').addEventListener('focusin', e => v5Hover(e.target.closest('.node'), e.target.closest('.edge')));
+$('#v5-chart').addEventListener('focusout', () => v5Hover(null, null));
+$('#v5-chart').addEventListener('click', e => {
+  const n = e.target.closest('.node');
+  if (n) {
+    const r = n.getAttribute('data-node');
+    if (S.pinnedNode === r) { S.pinnedNode = null; S.reviewers = new Set(REVS); }
+    else { S.pinnedNode = r; S.reviewers = new Set([r]); }
+    update(); return;
+  }
+  const g = e.target.closest('.edge'); if (g) openDrawer(EDGE_LIST[+g.getAttribute('data-idx')], g);
+});
+$('#v5-conf').addEventListener('click', () => { S.showConf = !S.showConf; v5Update(); });
+$('#v5-conn').addEventListener('click', () => { S.showConn = !S.showConn; v5Update(); });
+
+let drawerReturn = null;
+function openDrawer(e, from){
+  drawerReturn = from || null;
+  $('#drawer-title').textContent = e.from + ' → ' + e.to + ' · ' + plural(e.items.length, e.type);
+  $('#drawer-body').innerHTML = e.items.map(x => '<div class="item"><div>' + typeTag(x.type) + ' <span class="mono">' + esc(x.label) + '</span></div>' + (x.topic ? '<p><strong>' + esc(x.topic) + '</strong></p>' : '') + '<p>' + esc(x.text) + '</p><div>' +
+    x.targets.map(u => BYUID[u] ? '<button class="jump" data-jump="' + u + '">jump to ' + u + '</button>' : '').join('') + '</div></div>').join('');
+  $('#drawer').hidden = false; $('#drawer-close').focus();
+}
+function closeDrawer(){ $('#drawer').hidden = true; if (drawerReturn && document.body.contains(drawerReturn)) drawerReturn.focus(); drawerReturn = null; }
+$('#drawer-close').addEventListener('click', closeDrawer);
+$('#drawer-body').addEventListener('click', e => { const j = e.target.closest('[data-jump]'); if (j) { const u = j.getAttribute('data-jump'); $('#drawer').hidden = true; drawerReturn = null; jumpToFinding(u); } });
+
+/* ======================= VIZ 6 ======================= */
+const COLS = [
+  {key:'id', label:'ID'}, {key:'rev', label:'Reviewer'}, {key:'title', label:'Title'}, {key:'r1', label:'R1 sev'}, {key:'fin', label:'Final sev'},
+  {key:'change', label:'Change'}, {key:'status', label:'Status'}, {key:'top', label:'Top issue'}, {key:'cited', label:'Cited by', cls:'col-cited'}, {key:'lines', label:'Source lines', cls:'col-lines'}
+];
+function changeOf(it){
+  if (it.isNew) return {g:'★', t:'new', k:4};
+  const up = sevRank(it.fin) < sevRank(it.r1), dn = sevRank(it.fin) > sevRank(it.r1);
+  const sp = it.status.has('split');
+  if (up) return {g:'▲' + (sp ? ' ⑂' : ''), t:(sp ? 'split, ' : '') + 'up ' + SL[it.r1] + '→' + SL[it.fin], k:0};
+  if (dn) return {g:'▼', t:'down ' + SL[it.r1] + '→' + SL[it.fin], k:1};
+  if (sp) return {g:'⑂', t:'split, same', k:2};
+  return {g:'●', t:'same', k:3};
+}
+function sortVal(it, k){
+  switch (k) {
+    case 'id': return it.ord; case 'rev': return REVS.indexOf(it.rc); case 'title': return it.title.toLowerCase();
+    case 'r1': return sevRank(it.r1); case 'fin': return sevRank(it.fin); case 'change': return changeOf(it).k;
+    case 'status': return statusText(it); case 'top': return topByUid[it.uid] ? topByUid[it.uid][0] : 9;
+    case 'cited': return citedBy[it.uid].length; case 'lines': return it.lines ? parseInt(it.lines, 10) : 9999;
+  }
+}
+function v6Controls(){
+  $('#v6-controls').innerHTML =
+    '<div class="row" role="group" aria-label="Reviewer filter"><span class="lbl">Reviewer</span>' + REVS.map(r => '<button class="fchip" data-f="rev" data-v="' + r + '" title="' + esc(REV[r].display_name) + '">' + r + '</button>').join('') + '</div>' +
+    '<div class="row" role="group" aria-label="Severity filter"><span class="lbl">Severity</span>' + SEVS.map(s => '<button class="fchip" data-f="sev" data-v="' + s + '">' + SL[s] + ' ' + s + '</button>').join('') +
+      '<span class="lbl" style="min-width:0;margin-left:10px">by</span><div class="seg-ctl" role="group" aria-label="Severity basis"><button class="btn" data-basis="r1">Round 1</button><button class="btn" data-basis="final">Final</button></div></div>' +
+    '<div class="row" role="group" aria-label="Status filter"><span class="lbl">Status</span>' + STATUSES.map(s => '<button class="fchip" data-f="st" data-v="' + s + '">' + GLYPH[s] + ' ' + s + '</button>').join('') + '</div>' +
+    '<div class="row"><label class="lbl" for="v6-search">Search</label><input type="search" id="v6-search" placeholder="Title or problem text"><label style="margin-left:14px"><input type="checkbox" id="v6-top5"> Only findings in a Top-5 issue</label></div>';
+  $$('#v6-controls [data-basis]').forEach(b => b.addEventListener('click', () => setBasis(b.getAttribute('data-basis'))));
+  $('#v6-controls').addEventListener('click', e => {
+    const b = e.target.closest('.fchip'); if (!b) return;
+    const f = b.getAttribute('data-f'), v = b.getAttribute('data-v');
+    const set = f === 'rev' ? S.reviewers : f === 'sev' ? S.severities : S.status;
+    if (set.has(v)) set.delete(v); else set.add(v);
+    if (f === 'rev') S.pinnedNode = null;
+    update();
+  });
+  let tmr = 0;
+  $('#v6-search').addEventListener('input', e => { clearTimeout(tmr); const v = e.target.value; tmr = setTimeout(() => { S.search = v.trim().toLowerCase(); v6Render(); }, 150); });
+  $('#v6-top5').addEventListener('change', e => { S.top5only = e.target.checked; v6Render(); });
+}
+function v6Head(){
+  return '<thead><tr>' + COLS.map(c => {
+    const sorted = S.sort.key === c.key && S.sort.dir;
+    return '<th scope="col" class="' + (c.cls || '') + '"' + (sorted ? ' aria-sort="' + (S.sort.dir === 'asc' ? 'ascending' : 'descending') + '"' : '') + '><button data-sort="' + c.key + '">' + c.label + (sorted ? (S.sort.dir === 'asc' ? ' ↑' : ' ↓') : '') + '</button></th>';
+  }).join('') + '</tr></thead>';
+}
+function v6Render(){
+  $$('#v6-controls .fchip').forEach(b => {
+    const f = b.getAttribute('data-f'), v = b.getAttribute('data-v');
+    const set = f === 'rev' ? S.reviewers : f === 'sev' ? S.severities : S.status;
+    b.setAttribute('aria-pressed', String(set.has(v)));
+  });
+  $$('#v6-controls [data-basis]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-basis') === S.basis)));
+  let rows = ITEMS.filter(it => matches(it) &&
+    (!S.search || (it.title + ' ' + it.desc).toLowerCase().indexOf(S.search) >= 0) &&
+    (!S.top5only || topByUid[it.uid]));
+  if (S.sort.key && S.sort.dir) {
+    const k = S.sort.key, m = S.sort.dir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => { const x = sortVal(a, k), y = sortVal(b, k); return (x < y ? -1 : x > y ? 1 : 0) * m || a.ord - b.ord; });
+  } else rows.sort((a, b) => sevRank(a.fin) - sevRank(b.fin) || citedBy[b.uid].length - citedBy[a.uid].length || a.ord - b.ord);
+  $('#v6-count').textContent = rows.length + ' of ' + N_ALL + ' items shown (' + N_R1 + ' Round 1 findings + ' + N_NEW + ' added in Round 2)';
+  const body = rows.map(it => {
+    const ch = changeOf(it); const open = S.expandedRows.has(it.uid);
+    const tops = topByUid[it.uid] ? topByUid[it.uid].map(r => '<a href="#issue-' + r + '" data-issue-link="' + r + '">#' + r + '</a>').join(' ') : '';
+    const pd = splitNeeded(it.desc);
+    const cb = citedBy[it.uid];
+    const det = '<tr class="fdet" id="det-' + it.uid + '"' + (open ? '' : ' hidden') + '><td colspan="' + COLS.length + '" class="det">' +
+      '<h5>Problem</h5><p>' + esc(pd.problem) + '</p>' + (pd.needed ? '<h5>Needed / fix</h5><p>' + esc(pd.needed) + '</p>' : '') +
+      (it.q ? '<h5>Round 1 qualifier</h5><p>' + esc(it.q) + '</p>' : '') +
+      '<h5>Source reference</h5><p class="mono" style="font-size:13px">' + esc(it.ref) + '</p>' +
+      '<h5>Round 2 revision (' + esc(it.rc) + ')</h5><p>' + esc(it.isNew ? it.statusNote + ' ' + (it.note || '') : (revByUid[it.uid] ? it.statusNote : 'No revision entry; severity change recorded as "' + it.change + '".')) + '</p>' +
+      (it.conditional ? '<p>⚑ Conditional: ' + esc(it.conditional) + '</p>' : '') +
+      '<h5>Cited by other reviewers in Round 2 (' + cb.length + ')</h5>' + (cb.length ? '<ul>' + cb.map(x => '<li>' + typeTag(x.type) + ' <span class="mono">' + esc(x.label) + '</span> ' + (x.topic ? '<strong>' + esc(x.topic) + '.</strong> ' : '') + esc(x.text) + '</li>').join('') + '</ul>' : '<p class="muted">None.</p>') +
+      '</td></tr>';
+    return '<tr class="frow' + (open ? ' open' : '') + '" id="row-' + it.uid + '" data-uid="' + it.uid + '">' +
+      '<td><button class="row-toggle" aria-expanded="' + open + '" aria-controls="det-' + it.uid + '">' + it.uid + '</button></td>' +
+      '<td>' + chip(it.rc) + '</td><td>' + esc(it.title) + '</td><td>' + pill(it.r1) + '</td><td>' + pill(it.fin) + '</td>' +
+      '<td><span aria-hidden="true">' + ch.g + '</span> ' + esc(ch.t) + '</td><td>' + esc(statusText(it)) + '</td><td>' + tops + '</td>' +
+      '<td class="col-cited mono">' + cb.length + '</td><td class="col-lines mono" style="font-size:12px">' + esc(it.lines ? fmtLines(it) : (it.isNew ? it.ref : 'by section/quote')) + '</td></tr>' + det;
+  }).join('');
+  $('#v6-table').innerHTML = v6Head() + '<tbody>' + (body || '<tr><td colspan="' + COLS.length + '" class="muted">No findings match the current filters.</td></tr>') + '</tbody>';
+}
+$('#v6-table').addEventListener('click', e => {
+  const sb = e.target.closest('[data-sort]');
+  if (sb) {
+    const k = sb.getAttribute('data-sort');
+    if (S.sort.key !== k) S.sort = {key:k, dir:'asc'}; else if (S.sort.dir === 'asc') S.sort.dir = 'desc'; else S.sort = {key:null, dir:null};
+    v6Render(); const nb = $('#v6-table [data-sort="' + k + '"]'); if (nb) nb.focus(); return;
+  }
+  const il = e.target.closest('[data-issue-link]');
+  if (il) { e.preventDefault(); const r = il.getAttribute('data-issue-link'); toggleCard(r, true); $('#issue-' + r).scrollIntoView({behavior: reduced() ? 'auto' : 'smooth'}); $('.card-toggle', $('#issue-' + r)).focus({preventScroll:true}); return; }
+  if (e.target.closest('.fdet')) return;
+  const tr = e.target.closest('tr.frow'); if (!tr) return;
+  const uid = tr.getAttribute('data-uid');
+  if (S.expandedRows.has(uid)) S.expandedRows.delete(uid); else S.expandedRows.add(uid);
+  const open = S.expandedRows.has(uid);
+  tr.classList.toggle('open', open); $('.row-toggle', tr).setAttribute('aria-expanded', String(open)); $('#det-' + uid).hidden = !open;
+});
+function jumpToFinding(uid, keepFilters){
+  const it = BYUID[uid]; if (!it) return;
+  const rowVisible = () => !!$('#row-' + uid);
+  if (!rowVisible()) {
+    if (!keepFilters || true) { S.reviewers = new Set(REVS); S.severities = new Set(SEVS); S.status = new Set(STATUSES); S.search = ''; S.top5only = false; S.pinnedNode = null; const si = $('#v6-search'); if (si) si.value = ''; const cb = $('#v6-top5'); if (cb) cb.checked = false; update(); }
+  }
+  S.expandedRows.add(uid); v6Render();
+  const tr = $('#row-' + uid); if (!tr) return;
+  tr.scrollIntoView({behavior: reduced() ? 'auto' : 'smooth', block:'center'});
+  tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash');
+  setTimeout(() => tr.classList.remove('flash'), 1700);
+  $('.row-toggle', tr).focus({preventScroll:true});
+}
+
+/* ======================= Quick wins & about ======================= */
+function buildQuickWins(){
+  $('#qw-list').innerHTML = D.quick_wins.map(q => {
+    const issues = D.synthesis_top_issues.filter(t => quickWinsFor(t.rank).indexOf(q) >= 0).map(t => t.rank);
+    return '<li><strong>' + esc(q.action) + '.</strong> <span class="muted">' + esc(q.resolves) + '.</span><div class="sub"><span>Proposed by</span>' + q.proposed_by.map(r => chip(r)).join('') +
+      (q.endorsed_by.length ? '<span>Endorsed by</span>' + q.endorsed_by.map(r => chip(r, true)).join('') : '') +
+      '<span>Resolves</span>' + (issues.length ? issues.map(r => '<a href="#issue-' + r + '" data-issue-link="' + r + '">issue #' + r + '</a>').join(' ') : '<span>no top-5 issue</span>') + '</div></li>';
+  }).join('');
+  $('#qw-list').addEventListener('click', e => { const il = e.target.closest('[data-issue-link]'); if (il) { e.preventDefault(); const r = il.getAttribute('data-issue-link'); toggleCard(r, true); $('#issue-' + r).scrollIntoView({behavior: reduced() ? 'auto' : 'smooth'}); $('.card-toggle', $('#issue-' + r)).focus({preventScroll:true}); } });
+  const ac = D.aggregate_counts;
+  $('#about').textContent = 'All counts are computed from the embedded viz-data.json. Round 1: ' + ac.total_round1_findings + ' findings (' + ac.round1_findings_per_severity.BLOCKING + ' B / ' + ac.round1_findings_per_severity.MAJOR + ' M / ' + ac.round1_findings_per_severity.MINOR + ' m). Final: the same ' + ac.total_round1_findings + ' findings at their post-Round-2 severity (' + ac.post_round2_findings_per_severity.BLOCKING + ' B / ' + ac.post_round2_findings_per_severity.MAJOR + ' M / ' + ac.post_round2_findings_per_severity.MINOR + ' m; ' + ac.post_round2_severity_note + ') plus ' + ac.round2_new_findings + ' finding added in Round 2 (FL-NEW1, MAJOR), for ' + N_ALL + ' items. The spec’s appendix counted each split part as its own item (34 items, 7 B / 24 M / 3 m); this page follows the JSON. Split parts are described in each finding’s revision note. Status labels: upgraded = final severity higher than Round 1; narrowed, widened and split come from the reviewer’s revision entry; everything else is held. Position labels and clusters in the disagreement band come from the visualization spec, because viz-data.json does not record them.';
+}
+
+/* ======================= cross-checks ======================= */
+function crossCheck(){
+  const w = (m) => console.warn('[review-viz] spec/data mismatch: ' + m);
+  const r1 = {BLOCKING:0, MAJOR:0, MINOR:0}; ITEMS.forEach(i => { if (i.r1) r1[i.r1]++; });
+  const fin = {BLOCKING:0, MAJOR:0, MINOR:0}; ITEMS.forEach(i => fin[i.fin]++);
+  SEVS.forEach(s => { if (r1[s] !== APPX.r1[s]) w('Round 1 ' + s + ': appendix ' + APPX.r1[s] + ', JSON ' + r1[s]); });
+  if (N_ALL !== APPX.final.total) w('Final item count: appendix ' + APPX.final.total + ' (splits counted separately), JSON-derived ' + N_ALL + ' (30 Round 1 + ' + N_NEW + ' new; splits counted once at highest part).');
+  SEVS.forEach(s => { if (fin[s] !== APPX.final[s]) w('Final ' + s + ': appendix ' + APPX.final[s] + ', JSON-derived ' + fin[s]); });
+  const ac = D.aggregate_counts.post_round2_findings_per_severity;
+  const fin30 = {BLOCKING:0, MAJOR:0, MINOR:0}; ITEMS.filter(i => !i.isNew).forEach(i => fin30[i.fin]++);
+  SEVS.forEach(s => { if (fin30[s] !== ac[s]) w('JSON aggregate_counts post-R2 ' + s + ' = ' + ac[s] + ' but findings[] give ' + fin30[s]); });
+  const splits = ITEMS.filter(i => i.status.has('split')).map(i => i.uid);
+  if (splits.join() !== APPX.splits.join()) w('Split findings: appendix ' + APPX.splits.join(', ') + '; JSON ' + splits.join(', '));
+  Object.keys(APPX.status).forEach(u => { const it = BYUID[u]; if (it && !it.status.has(APPX.status[u])) w(u + ' status: appendix "' + APPX.status[u] + '", JSON-derived "' + statusText(it) + '"'); });
+  if (R2.filter(x => x.type === 'conflict').length !== D.aggregate_counts.cross_exam_conflicts) w('conflict item count differs from aggregate_counts');
+  if (R2.filter(x => x.type === 'connection').length !== D.aggregate_counts.cross_exam_connections) w('connection item count differs from aggregate_counts');
+  D.disagreement_positions.forEach(p => { if (!(SPEC_POS[p.disagreement_id] || {})[p.reviewer_code]) w('No spec short label for ' + p.disagreement_id + '/' + p.reviewer_code); });
+}
+
+/* ======================= global ======================= */
+function update(){
+  updateFilterBar(); v1Update(); v2Update(); v3Build(); v4Update(); v5Update(); v6Render();
+}
+function buildAll(){
+  buildHeader(); v1Static(); v1.shown = v1Nums(S.basis); v1Build(); v2Build(); v3Build(); v4Static(); v4Build(); v5Side(); v5Build(); v6Controls(); buildQuickWins(); update();
+}
+let rz = 0, lastW = window.innerWidth;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (window.innerWidth === lastW) return; lastW = window.innerWidth; v1Build(); v3Build(); v4Build(); v5Build(); updateFilterBar(); }, 150); });
+buildAll();
+crossCheck();
+})();
+</script>
+</body>
+</html>

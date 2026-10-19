@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Review Board — Ring Wars Game Design Document</title>
+<style>
+  :root {
+    --bg: #16181D;
+    --panel: #1F232B;
+    --text: #E8E6E1;
+    --muted: #8A8F98;
+    --rule: #2A2F38;
+    --blocking: #E5484D;
+    --major: #F5A623;
+    --minor: #5A6270;
+    --display: "Arial Narrow", "Helvetica Neue Condensed", "Roboto Condensed", "Liberation Sans Narrow", sans-serif-condensed, sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 72px 32px 48px; }
+  section { margin-top: 96px; }
+  @media (prefers-reduced-motion: no-preference) {
+    section, header { animation: fadeUp 600ms ease-out both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  }
+  a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+  a:hover, a:focus { color: var(--muted); }
+
+  /* Display type */
+  .eyebrow, h1, h2, .rank, .stat-num, .tab {
+    font-family: var(--display);
+    font-stretch: condensed;
+  }
+  .eyebrow {
+    font-size: 18px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 16px;
+  }
+  h1 {
+    font-size: 64px; line-height: 1.0; margin: 0 0 20px;
+    text-transform: uppercase; letter-spacing: -0.01em; font-weight: 700;
+  }
+  h2 {
+    font-size: 40px; line-height: 1.05; margin: 0 0 8px;
+    text-transform: uppercase; letter-spacing: 0.02em; font-weight: 700;
+  }
+  .section-sub { color: var(--muted); margin: 0 0 32px; font-size: 18px; }
+  h3 { font-size: 24px; margin: 40px 0 12px; font-weight: 600; }
+
+  /* Severity stamps — the signature element */
+  .stamp {
+    display: inline-block;
+    border: 1px solid currentColor;
+    background: transparent;
+    padding: 2px 10px 1px;
+    border-radius: 2px;
+    font-family: var(--body);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .stamp.blocking { color: var(--blocking); }
+  .stamp.major { color: var(--major); }
+  .stamp.minor { color: var(--minor); }
+  /* Monochrome outline tags (not severity) */
+  .tag {
+    display: inline-block;
+    border: 1px solid var(--muted);
+    color: var(--text);
+    padding: 2px 10px 1px;
+    border-radius: 2px;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .chip {
+    display: inline-block;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    padding: 2px 10px;
+    border-radius: 3px;
+    font-size: 15px;
+    margin: 0 6px 6px 0;
+    white-space: nowrap;
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* Masthead */
+  header.masthead {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 48px;
+    align-items: end;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 48px;
+  }
+  .meta { color: var(--muted); font-size: 18px; margin: 0 0 24px; }
+  .verdict-line { font-size: 24px; line-height: 1.4; margin: 0; max-width: 46ch; }
+  .verdict-line .stamp { margin-right: 10px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 150px); gap: 0; }
+  .stat { padding: 0 20px; border-left: 1px solid var(--rule); }
+  .stat-num { font-size: 88px; line-height: 0.95; font-weight: 700; display: block; }
+  .stat-num.blocking { color: var(--blocking); }
+  .stat-label { font-size: 15px; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; display: block; margin-top: 8px; line-height: 1.3; }
+
+  /* Top 5 */
+  .issue {
+    position: relative;
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 40px 44px 36px 168px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .rank {
+    position: absolute; left: 36px; top: 22px;
+    font-size: 96px; line-height: 1; font-weight: 700;
+    color: var(--muted); opacity: 0.35;
+  }
+  .issue-tags { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+  .issue-tags .note { color: var(--muted); font-size: 16px; }
+  .problem { font-size: 30px; line-height: 1.25; margin: 0 0 20px; font-weight: 600; }
+  .issue p.detail { font-size: 18px; color: var(--text); margin: 0 0 18px; }
+  .label { font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-right: 10px; }
+  .near { color: var(--muted); font-size: 18px; margin-top: 32px; }
+
+  /* Disagreements */
+  .dis { margin-bottom: 56px; }
+  .dis h3 { margin-top: 0; font-size: 28px; }
+  .positions { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+  .pos { background: var(--panel); padding: 24px 28px; }
+  .pos .who { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.08em; font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .pos p { margin: 0; font-size: 18px; }
+  .escalated { margin-top: 16px; font-size: 18px; }
+
+  /* Quick wins */
+  ol.wins { padding-left: 0; list-style: none; counter-reset: w; margin: 0; }
+  ol.wins li { counter-increment: w; padding: 20px 0 20px 64px; border-top: 1px solid var(--rule); position: relative; font-size: 20px; }
+  ol.wins li:last-child { border-bottom: 1px solid var(--rule); }
+  ol.wins li::before { content: counter(w); position: absolute; left: 0; top: 10px; font-family: var(--display); font-stretch: condensed; font-size: 44px; font-weight: 700; color: var(--muted); opacity: 0.5; }
+  .src { color: var(--muted); font-size: 16px; }
+
+  /* Full board */
+  .tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }
+  .tab {
+    background: transparent; color: var(--muted); border: 0; border-bottom: 2px solid transparent;
+    padding: 12px 18px; font-size: 22px; text-transform: uppercase; letter-spacing: 0.06em;
+    cursor: pointer; font-weight: 700;
+  }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  .tab:focus-visible { outline: 1px solid var(--text); outline-offset: 2px; }
+  .js .panel[hidden] { display: none; }
+  .tabs { display: none; }
+  .js .tabs { display: flex; }
+  .panel h3.rev { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.06em; font-size: 30px; margin: 40px 0 4px; }
+  .js .panel h3.rev { display: none; }
+  .sub { font-size: 14px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin: 32px 0 0; }
+  .finding { display: grid; grid-template-columns: 150px 1fr; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .finding:first-of-type { border-top: 1px solid var(--rule); }
+  .finding .ttl { font-weight: 600; font-size: 20px; margin: 0 0 6px; }
+  .finding p { margin: 0; font-size: 18px; }
+  .finding .r2 { color: var(--muted); margin-top: 8px; font-size: 18px; }
+  .finding .r2 .stamp { font-size: 12px; padding: 0 8px; }
+  ul.xexam { list-style: none; padding: 0; margin: 0; }
+  ul.xexam li { padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 18px; display: grid; grid-template-columns: 150px 1fr; gap: 20px; }
+  ul.xexam li:first-child { border-top: 1px solid var(--rule); }
+  ul.xexam .k { color: var(--muted); font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; padding-top: 3px; }
+
+  footer { margin-top: 112px; padding-top: 28px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 16px; }
+  footer p { margin: 0 0 8px; }
+  footer .method { letter-spacing: 0.14em; text-transform: uppercase; font-size: 15px; color: var(--text); }
+
+  @media (max-width: 860px) {
+    header.masthead { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .issue { padding: 96px 28px 28px; }
+    .rank { top: 12px; left: 24px; }
+    .positions { grid-template-columns: 1fr; }
+    .finding, ul.xexam li { grid-template-columns: 1fr; gap: 8px; }
+    h1 { font-size: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 1. MASTHEAD -->
+<header class="masthead">
+  <div>
+    <p class="eyebrow">Design Review Board</p>
+    <h1>Ring Wars<br>Game Design Document</h1>
+    <p class="meta">Reviewed 2026-10-19 · Draft · Six reviewers, two rounds, moderated synthesis</p>
+    <p class="verdict-line"><span class="stamp blocking">Not ready</span>The loss rules contradict each other and can be beaten by failing on purpose, and the eight-week plan has no scope boundary. Write the inventory, must/should/cut list and week-8 target first.</p>
+  </div>
+  <div class="stats" role="list">
+    <div class="stat" role="listitem"><span class="stat-num">30</span><span class="stat-label">Round 1 findings</span></div>
+    <div class="stat" role="listitem"><span class="stat-num blocking">7</span><span class="stat-label">Blocking after cross-exam</span></div>
+    <div class="stat" role="listitem"><span class="stat-num">6</span><span class="stat-label">Unresolved disagreements</span></div>
+  </div>
+</header>
+
+<!-- 2. TOP 5 -->
+<section aria-labelledby="top5">
+  <p class="eyebrow">Ranked by severity × confidence</p>
+  <h2 id="top5">Top 5 Issues</h2>
+  <p class="section-sub">From the moderator synthesis. Cross-examination outcome shows how each issue fared in Round 2.</p>
+
+  <article class="issue">
+    <div class="rank" aria-hidden="true">1</div>
+    <div class="issue-tags"><span class="stamp blocking">Blocking</span><span class="tag">Strengthened</span></div>
+    <p class="problem">A full-squad wipe costs less than losing one operator, so failing on purpose beats a successful extraction.</p>
+    <p class="detail">Found independently by four reviewers. Round 2 added enablers: friendly fire as a one-click reset, scouting both sides of an exclusive branch, no save model, and the loss of the only hook against XCOM 2. NC notes line 380 may cover failure, making this an ambiguity rather than a stated rule. The remedy is disputed (Disagreement A).</p>
+    <div><span class="label">Flagged by</span><span class="chip"><b>Systems</b> #1</span><span class="chip"><b>Psychologist</b> #1</span><span class="chip"><b>Adversarial QA</b> #1</span><span class="chip"><b>Narrative</b> #4</span><span class="chip"><b>Business</b> X1</span><span class="chip"><b>Feasibility</b> B</span></div>
+  </article>
+
+  <article class="issue">
+    <div class="rank" aria-hidden="true">2</div>
+    <div class="issue-tags"><span class="stamp blocking">Blocking</span><span class="tag">Survived</span></div>
+    <p class="problem">No scope boundary: what exists, what week 8 delivers, and what gets cut are never stated.</p>
+    <p class="detail">About 22 authored missions, 9 kits, a generator, a creator and the HQ against about 16 iteration cycles. BA adopted FL's point that Jim's review time, not tokens, is the real throughput limit.</p>
+    <div><span class="label">Flagged by</span><span class="chip"><b>Feasibility</b> #1</span><span class="chip"><b>Business</b> #1</span></div>
+  </article>
+
+  <article class="issue">
+    <div class="rank" aria-hidden="true">3</div>
+    <div class="issue-tags"><span class="stamp blocking">Blocking</span><span class="tag">Strengthened</span></div>
+    <p class="problem">Line 117 promises Downed operators are revived or explicitly left behind; line 308 abandons them silently and automatically.</p>
+    <p class="detail">PP upgraded MAJOR to BLOCKING because the document's own Example of Play promises the opposite rule. AQA locates the defect in the line 308 rule, not the input scheme. SD: extraction is the mission's only pressure phase and can be frozen by uncapped Suppressing Fire.</p>
+    <div><span class="label">Flagged by</span><span class="chip"><b>Adversarial QA</b> #1</span><span class="chip"><b>Psychologist</b> #2</span><span class="chip"><b>Narrative</b> X5</span><span class="chip"><b>Systems</b> K3</span></div>
+  </article>
+
+  <article class="issue">
+    <div class="rank" aria-hidden="true">4</div>
+    <div class="issue-tags"><span class="stamp blocking">Blocking</span><span class="note">Feasibility: Blocking · Business: Major</span><span class="tag">Strengthened</span></div>
+    <p class="problem">No playthrough or test harness exists, so the Level Builder, Testing and Balance agents' quality gates can't run.</p>
+    <p class="detail">FL split this out of its Level Builder finding and upgraded it to BLOCKING; BA moved it from MINOR to MAJOR. At least five findings from three reviewers can't be checked without it.</p>
+    <div><span class="label">Flagged by</span><span class="chip"><b>Feasibility</b> #3 / A</span><span class="chip"><b>Business</b> #5 / X3</span><span class="chip"><b>Adversarial QA</b> #5</span><span class="chip"><b>Systems</b> #4</span></div>
+  </article>
+
+  <article class="issue">
+    <div class="rank" aria-hidden="true">5</div>
+    <div class="issue-tags"><span class="stamp major">Major</span><span class="tag">Strengthened</span></div>
+    <p class="problem">Branch choices permanently lock whole kits, splitting balance into a 16-path matrix and removing the Medic on one path.</p>
+    <p class="detail">The branch named after the tagline, "Bring Them Home", is the one that removes ranged Rescue if the player chooses against it. The only Medic kit can be lost along with its carrier. FL and BA both name "never lock kits" as the cheapest fix.</p>
+    <div><span class="label">Flagged by</span><span class="chip"><b>Systems</b> #4</span><span class="chip"><b>Psychologist</b> #4</span><span class="chip"><b>Business</b> #3</span><span class="chip"><b>Narrative</b> #5</span><span class="chip"><b>Feasibility</b> F</span><span class="chip"><b>Adversarial QA</b> C</span></div>
+  </article>
+
+  <p class="near">Just outside the top 5: undefined save model · customization art cost · economy with no numbers or farming limit · objectives and NPCs with no failure rules · unused setting hooks.</p>
+</section>
+
+<!-- 3. DISAGREEMENTS -->
+<section aria-labelledby="dis">
+  <p class="eyebrow">Escalated to the designer</p>
+  <h2 id="dis">The Disagreement</h2>
+  <p class="section-sub">Conflicts from Round 2 that the board could not settle.</p>
+
+  <div class="dis">
+    <h3>A. What should a full-squad wipe cost?</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Systems Designer</div><p>At least as bad as losing one operator: Downed operators captured or lost on a wipe, or the operation closes or escalates. Fix the cost before adding a confirmation prompt.</p></div>
+      <div class="pos"><div class="who">Player Psychologist</div><p>More than a successful extraction, less than four permanent deaths. Total loss is a death spiral. Capture plus a time-limited rescue, or forfeit the operation and its rewards.</p></div>
+      <div class="pos"><div class="who">Narrative Critic</div><p>Capture, yes. "Closes", no: Sever the Ring, Break the Bastion and Their Last Order are single-path story missions.</p></div>
+      <div class="pos"><div class="who">Adversarial QA</div><p>Any penalty without a roster floor becomes a softlock. In Breakout the squad is one prisoner, so one failure would end the campaign.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>Choose the wipe outcome together with a roster floor, a save model, and how story missions behave after failure. FL: the cost depends on the undefined save model.</p>
+  </div>
+
+  <div class="dis">
+    <h3>B. Side missions: generator, curated pool, or not in the slice?</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Feasibility Lead</div><p>A curated, pre-verified pool fixes verification, economy and farming together. Week-8 target: Act 1 plus one side-mission type.</p></div>
+      <div class="pos"><div class="who">Business Analyst</div><p>No side missions in the slice. A capped pool makes the runtime generator overbuilt: "It cannot be both."</p></div>
+      <div class="pos"><div class="who">Systems Designer</div><p>A finite pool only with a pool size calculated from the progression target and a guaranteed-recruit floor.</p></div>
+      <div class="pos"><div class="who">Adversarial QA</div><p>A fixed pool makes the roster softlock real once it runs out; an unlimited generator makes loss trivial. Decide both together.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>Whether side missions are in the slice, which model, and the pool size.</p>
+  </div>
+
+  <div class="dis">
+    <h3>C. How should the bench get used?</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Systems Designer</div><p>A carry-over cost such as recovery time. Shared bench XP would make rotation cosmetic.</p></div>
+      <div class="pos"><div class="who">Player Psychologist</div><p>Rewards, not penalties. With no campaign clock, injury timers add friction and double-punish anxious players.</p></div>
+      <div class="pos"><div class="who">Feasibility Lead</div><p>Declare rotation optional; the bench exists for loss recovery. The only option that fits the schedule.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>Is rotation a designed pressure, and if so, penalty-driven or reward-driven?</p>
+  </div>
+
+  <div class="dis">
+    <h3>D. Fix narrative gaps by adding content, or by cutting systems?</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Narrative Critic</div><p>A creator cut needs cheap narrative replacements: generated backgrounds, loss-reactive lines, a named handler and Directorate commander. Branch previews should show the people affected first.</p></div>
+      <div class="pos"><div class="who">Business Analyst · Feasibility Lead</div><p>Each addition stacks scope on a BLOCKING plan. Subtract instead: stop the kit lockouts; use text plus one voiced handler, with the antagonist appearing through intercepted orders.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>The minimum authored narrative needed for the loss and rescue pillars within scope. PP: moral framing only after lockouts are softened.</p>
+  </div>
+
+  <div class="dis">
+    <h3>E. Severity of market positioning</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Business Analyst</div><p><span class="stamp major">Major</span> The wipe exploit sinks the only hook against XCOM 2; the insider-resistance premise is an unused differentiator.</p></div>
+      <div class="pos"><div class="who">Feasibility Lead</div><p><span class="stamp minor">Minor</span> Until the document says commercial release is a goal. Positioning doesn't change what can be built in eight weeks.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>Is commercial release a goal, or is this coursework only?</p>
+  </div>
+
+  <div class="dis">
+    <h3>F. Severity of the undefined opening prisoner</h3>
+    <div class="positions">
+      <div class="pos"><div class="who">Narrative Critic</div><p><span class="stamp major">Major</span> It decides who the protagonist is and must be settled before any voiceover script.</p></div>
+      <div class="pos"><div class="who">Player Psychologist</div><p><span class="stamp minor">Minor</span> A dependency: an avatar either can't die, undercutting loss, or can, breaking the framing. AQA adds that it's a missing game-over condition.</p></div>
+    </div>
+    <p class="escalated"><span class="label">Escalated</span>Is the player an operator, the commander, or the prisoner, and can that character be permanently lost?</p>
+  </div>
+</section>
+
+<!-- Quick wins -->
+<section aria-labelledby="wins">
+  <p class="eyebrow">Cheap fixes</p>
+  <h2 id="wins">Quick Wins</h2>
+  <ol class="wins">
+    <li>Make line 308 require the same explicit leave-behind commitment for Downed operators as for standing ones, matching line 117. <span class="src">AQA · PP R1 · NC X5</span></li>
+    <li>Make mission objectives indestructible engine-wide: "a one-line rule" that removes a class of dead-end states. <span class="src">FL D · AQA #5, A</span></li>
+    <li>Let choice pairs vary rewards or timing but never lock a kit; at minimum, keep any branch-opened kit buyable. <span class="src">FL F · BA C4 · SD K4</span></li>
+  </ol>
+</section>
+
+<!-- 4. FULL BOARD -->
+<section aria-labelledby="board">
+  <p class="eyebrow">Drill-down</p>
+  <h2 id="board">Full Board</h2>
+  <p class="section-sub">Round 1 findings with Round 1 severity; Round 2 changes noted beneath each. Cross-examination follows.</p>
+
+  <div class="tabs" role="tablist" aria-label="Reviewers">
+    <button class="tab" role="tab" id="t-sd" aria-controls="p-sd" aria-selected="true">Systems</button>
+    <button class="tab" role="tab" id="t-nc" aria-controls="p-nc" aria-selected="false" tabindex="-1">Narrative</button>
+    <button class="tab" role="tab" id="t-pp" aria-controls="p-pp" aria-selected="false" tabindex="-1">Psychologist</button>
+    <button class="tab" role="tab" id="t-fl" aria-controls="p-fl" aria-selected="false" tabindex="-1">Feasibility</button>
+    <button class="tab" role="tab" id="t-qa" aria-controls="p-qa" aria-selected="false" tabindex="-1">Adversarial QA</button>
+    <button class="tab" role="tab" id="t-ba" aria-controls="p-ba" aria-selected="false" tabindex="-1">Business</button>
+  </div>
+
+  <!-- Systems Designer -->
+  <div class="panel" role="tabpanel" id="p-sd" aria-labelledby="t-sd">
+    <h3 class="rev">Systems Designer</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp blocking">Blocking</span></div><div><p class="ttl">1. Failing the mission costs less than losing one operator.</p><p>Permanent loss happens only on a successful extraction (L308). A full wipe fails with no stated cost, and the same map can be replayed (L312, L326).</p><p class="r2">Round 2: stays <span class="stamp blocking">Blocking</span>, scope widened: friendly fire, save policy, and "secure the location" missions that have no extraction step.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. The economy has no numbers, no stated sinks and no limit on farming.</p><p>No XP, credit, training-step or price values. It's never said whether side missions refill, so grinding could flatten the difficulty curve. Credit sinks run out once the squad is equipped.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>; absorbs QA's Field Orders loop; any finite pool needs a pool-size calculation.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. Nothing carries over between missions, so the bench has no systemic job.</p><p>Health and gear reset each mission. The strongest strategy is one trained A-team plus a fresh recruit when a specialist kit is needed.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>, reframed as "loss and rotation have almost no mechanical cost".</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. Branch choices lock whole kits, but the difficulty curve assumes all kits exist.</p><p>Medic/Captain locks one kit; Long Reach/Heavy Hands appears to lock Sniper or Minigun. With 16 possible paths the Balance Agent has no defined target.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>; adds the lose-it-twice death spiral; branch-opened kits must stay buyable.</p></div></div>
+    <div class="finding"><div><span class="stamp minor">Minor</span></div><div><p class="ttl">5. Pressure only starts after the objective; reinforcement rules are undefined.</p><p>Slow, overwatch-heavy play is the low-risk default during the approach. "Sustained" reinforcements have no rate, cap or end condition.</p><p class="r2">Round 2: upgraded to <span class="stamp major">Major</span>. Credits-per-kill concern withdrawn (L404); only the XP source is still open.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs Psychologist</span><span>A confirmation prompt shipped before failure has a cost points players to the free reset. Fix failure cost first; failure cost and save policy must be designed together.</span></li>
+      <li><span class="k">vs Psychologist</span><span>Bench XP would remove the last difference between deployed and reserve operators; recruits already catch up to the story baseline.</span></li>
+      <li><span class="k">vs Adversarial QA</span><span>Agrees with the Field Orders gap, not its severity: MINOR, folded into "no numbers". The Suppressing Fire board lock is MAJOR.</span></li>
+      <li><span class="k">vs FL / BA</span><span>A finite curated pool is better for the systems, but only with a pool-size calculation and a guaranteed-recruit floor.</span></li>
+      <li><span class="k">Connection</span><span>Friendly fire makes the wipe a one-click reset; the Downed damage rule and the failure-cost rule are one decision.</span></li>
+      <li><span class="k">Connection</span><span>Replacements arrive at the story baseline, so deaths get cheaper as the campaign goes on, and nothing in the story reacts to them.</span></li>
+      <li><span class="k">Connection</span><span>Extraction is the only pressure phase, has contradictory end rules, and can be shut off by uncapped Suppressing Fire.</span></li>
+      <li><span class="k">Connection</span><span>A branch-locked kit can be lost twice: the only Medic kit can go with its carrier.</span></li>
+      <li><span class="k">Connection</span><span>A guaranteed minimum toolset cuts tuning from 16 combinations to 2.</span></li>
+    </ul>
+  </div>
+
+  <!-- Narrative Critic -->
+  <div class="panel" role="tabpanel" id="p-nc" aria-labelledby="t-nc">
+    <h3 class="rev">Narrative Critic</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">1. The Ring, the insider resistance and the "hint of fantasy" are set up and dropped.</p><p>The Ring is severed in Act 1 and never mentioned again. The resistance's origin as the Directorate's own logistics staff is never used. Rated close to BLOCKING.</p><p class="r2">Round 2: holds <span class="stamp major">Major</span>, priority raised: the unused insider premise is the missing differentiator.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. The player's identity contradicts itself.</p><p>One of the operators (L422), the commander of the squad (L29), or an unexplained unarmed prisoner (L214, L511).</p><p class="r2">Round 2: held at <span class="stamp major">Major</span> against PP's MINOR.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. No authored characters on either side; the antagonist has no face or motive.</p><p>No character is named, so Their Last Order is fought against an enemy the player never met. The voiceover contract needs speaker identities the design doesn't supply.</p><p class="r2">Round 2: holds <span class="stamp major">Major</span>; minimum is a named handler, a named Directorate commander, and one line each for rescued characters.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. "Bring your operators home" is undercut by how loss and failure are framed.</p><p>The authored story never acknowledges loss, and the failure rules make a total wipe cheaper than losing one operator.</p><p class="r2">Round 2: narrowed to the narrative side; notes L380 makes the inversion an ambiguity.</p></div></div>
+    <div class="finding"><div><span class="stamp minor">Minor</span></div><div><p class="ttl">5. Exclusive choices are framed as loadout picks, hiding moral stakes.</p><p>Leaving civilians imprisoned to take a weapons factory is presented as an equipment pick, and the road not taken disappears.</p><p class="r2">Round 2: upgraded to <span class="stamp major">Major</span>.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs BA / FL</span><span>Cutting the creator is only safe if paired with cheap narrative carriers: generated backgrounds, loss-reactive lines, richer memorial text.</span></li>
+      <li><span class="k">vs Systems</span><span>Backs "captured on a wipe"; rejects "the operation closes", which would break single-path story missions.</span></li>
+      <li><span class="k">vs Psychologist</span><span>Holds the opening prisoner at MAJOR: it decides who the story is about. Branch previews should lead with the people left behind, then the kit.</span></li>
+      <li><span class="k">Connection</span><span>The branch named after the tagline removes the Medic if the player chooses against it.</span></li>
+      <li><span class="k">Connection</span><span>Rescued people have no damage rules and no story role, so the rescue pillar has nothing behind it.</span></li>
+      <li><span class="k">Connection</span><span>The unused insider premise is the differentiator BA says is missing against XCOM 2.</span></li>
+      <li><span class="k">Connection</span><span>Deciding what "lost" means in the fiction would settle QA's open Downed rules; L117 states the intended rule.</span></li>
+    </ul>
+  </div>
+
+  <!-- Player Psychologist -->
+  <div class="panel" role="tabpanel" id="p-pp" aria-labelledby="t-pp">
+    <h3 class="rev">Player Psychologist</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp blocking">Blocking</span></div><div><p class="ttl">1. Permanent loss is harsher than a full wipe, which pushes players to throw missions.</p><p>L308 vs L312/L326. No save or reload rules, and no difficulty or ironman option.</p><p class="r2">Round 2: stays <span class="stamp blocking">Blocking</span>; remedy refined so a wipe doesn't become total roster loss.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. Downed operators are abandoned automatically, without confirmation.</p><p>Once the last standing operator reaches the zone, Downed teammates are lost with no prompt and no undo (L308).</p><p class="r2">Round 2: upgraded to <span class="stamp blocking">Blocking</span>; the Example of Play (L117) promises the opposite rule.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. The second mission introduces too much at once; several core rules are never taught.</p><p>A Place to Stand adds squad combat, Overwatch and the whole HQ at once. The damage pipeline, reaction fire inside cones, Suppressing Fire and the extraction loss rule are never taught.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>, priority raised; friendly fire on Downed allies added as its most severe instance.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. Kit lockouts are blind and permanent and can remove a core safety tool.</p><p>Medic versus Captain is chosen before either is tried; the Medic is the only ranged revive.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>, broader scope; would support cutting branching.</p></div></div>
+    <div class="finding"><div><span class="stamp minor">Minor</span></div><div><p class="ttl">5. The attachment pillar starts late; the first operator's identity is undefined.</p><p>The Breakout prisoner isn't said to be customisable or kept on the roster. Bench XP is unstated.</p><p class="r2">Round 2: split. Bench XP handed to Systems #3; prisoner point flagged as a dependency on Narrative #2.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs Systems</span><span>Losing every Downed operator on a wipe is a death spiral. A wipe should cost more than extraction and less than four deaths: capture plus rescue, or forfeit the operation.</span></li>
+      <li><span class="k">vs Systems</span><span>Use rewards, not injury timers; with no campaign clock, timers add friction without choice.</span></li>
+      <li><span class="k">vs Feasibility</span><span>A single body type cuts below the attachment floor; endorses BA's presets-and-callsigns cut, with the prisoner nameable from minute one.</span></li>
+      <li><span class="k">vs Narrative</span><span>Adding moral weight before softening the lockouts makes players resent the choices more.</span></li>
+      <li><span class="k">Connection</span><span>The Example of Play teaches the wrong extraction rule, likely to become tutorial and store copy.</span></li>
+      <li><span class="k">Connection</span><span>Untaught friendly fire could kill a Downed favourite with the player's own ability.</span></li>
+      <li><span class="k">Connection</span><span>The reaction-fire path preview is the only way players learn the cone rule; it must survive any scope cut.</span></li>
+      <li><span class="k">Connection</span><span>A scope cut makes onboarding most of what testers see. XCOM players will bring save-scum habits, so the save model isn't neutral.</span></li>
+    </ul>
+  </div>
+
+  <!-- Feasibility Lead -->
+  <div class="panel" role="tabpanel" id="p-fl" aria-labelledby="t-fl">
+    <h3 class="rev">Feasibility Lead</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp blocking">Blocking</span></div><div><p class="ttl">1. The document never says what the eight weeks deliver, what exists, or what gets cut.</p><p>A full campaign against at most 16 reference cycles, which the document calls iterations, not missions. Jim's own review time is never estimated.</p><p class="r2">Round 2: unchanged.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. Generated side missions can't be verified the way the pipeline claims.</p><p>Unity assembles them at runtime with no agent involved, so agents can't "check the resulting missions".</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>; recommendation revised from "cut" to a curated, pre-verified pool.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. The Level Builder Agent is the critical path; its tool integration and budget are unspecified.</p><p>Never says how the agent drives Unity or Blender or how "playable-path checks" run. The 160k-token estimate is optimistic.</p><p class="r2">Round 2: split. Missing test harness upgraded to <span class="stamp blocking">Blocking</span>; token budget stays <span class="stamp major">Major</span>.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. Combat systems are tightly coupled; gameplay AI has no technical design.</p><p>Gridless movement, destructible directional cover and mid-path reaction fire interact; the "AI Architecture" section covers only development agents.</p><p class="r2">Round 2: unchanged; made worse by unbounded control effects.</p></div></div>
+    <div class="finding"><div><span class="stamp minor">Minor</span></div><div><p class="ttl">5. Customization, action cameras and macOS add unscoped work.</p><p>Mixed-vendor gear must fit every body type and survive close camera framing. macOS is a second build target with no checks.</p><p class="r2">Round 2: customization upgraded to <span class="stamp major">Major</span>; cameras and macOS stay <span class="stamp minor">Minor</span>.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">New in Round 2. The save and persistence model is unspecified.</p><p>Fixing the wipe exploit depends on it, and a mid-mission save would have to serialize destructible gridless state, cones, Downed states and seeds.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs Systems / QA</span><span>Proposed fixes add systems to an uncut plan. Use the cheapest rule: rotation optional, a fixed reinforcement rule per mission, a numbers table now, late credit sink deferred.</span></li>
+      <li><span class="k">vs Narrative</span><span>Named, faced characters cost art and voice. Briefing text plus one voiced handler, antagonist through intercepted orders; the Ring payoff costs almost nothing.</span></li>
+      <li><span class="k">vs Business</span><span>Market positioning is MINOR until the document says commercial release is a goal.</span></li>
+      <li><span class="k">Connection</span><span>Every agent quality gate rests on a test harness nobody specified.</span></li>
+      <li><span class="k">Connection</span><span>Fixing the wipe exploit exposes an unspecified save system; retries also need seeded AI and damage rolls.</span></li>
+      <li><span class="k">Connection</span><span>Objectives should be indestructible engine-wide to avoid unwinnable generated missions.</span></li>
+      <li><span class="k">Connection</span><span>Choice pairs should never lock kits; the Warmech is the clearest single cut.</span></li>
+    </ul>
+  </div>
+
+  <!-- Adversarial QA -->
+  <div class="panel" role="tabpanel" id="p-qa" aria-labelledby="t-qa">
+    <h3 class="rev">Adversarial QA</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp blocking">Blocking</span></div><div><p class="ttl">1. Extraction, Downed and failure rules contradict; failing a mission beats succeeding.</p><p>L117 requires a revive; L308 ends the mission automatically and loses the Downed operator. A wipe with a retained layout works as a free scouting run.</p><p class="r2">Round 2: stays <span class="stamp blocking">Blocking</span>; adds scouting both sides of an exclusive branch.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. The Downed state has no rules for further damage, targeting or forced movement.</p><p>Can a frag or Orbital Strike kill a Downed operator? Does a revive inside a cone trigger Overwatch?</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. Permanent losses can leave the roster unable to field a squad.</p><p>No minimum squad size, recruitment timing or rule for lost single-copy equipment. Unlimited side missions are the only recovery path.</p><p class="r2">Round 2: becomes <span class="stamp blocking">Blocking</span> if any wipe penalty is adopted.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. AP-granting and control abilities have no limits.</p><p>Field Orders can loop between Captains; Suppressing Fire can freeze every reinforcement approach.</p><p class="r2">Round 2: narrowed (Captain is branch-gated). Grenade-pin point moved to <span class="stamp minor">Minor</span>; board lock stays <span class="stamp major">Major</span>.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">5. Objectives and non-combatants have no damage or failure rules.</p><p>Consoles, supplies and escorted people can be destroyed or killed with no fail rule.</p><p class="r2">Round 2: stays <span class="stamp major">Major</span>, widened to generated missions.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs Systems</span><span>A wipe penalty without a roster floor turns a soft exploit into a softlock; in Breakout one failure would end the campaign.</span></li>
+      <li><span class="k">vs Psychologist</span><span>The cause is the L308 rule, not the input; L507 already separates confirm from End Turn.</span></li>
+      <li><span class="k">vs Systems</span><span>Mission pressure is MAJOR without the kill-XP condition: uncapped reinforcements are a queue the player can freeze.</span></li>
+      <li><span class="k">vs FL / BA</span><span>The generator decision must also settle the roster floor and ceiling.</span></li>
+      <li><span class="k">Connection</span><span>Unchecked generated layouts kept across retries become repeatable dead ends; offers need an abandon or reroll rule.</span></li>
+      <li><span class="k">Connection</span><span>Failure returns the player to mission choices, so a deliberate wipe may scout both sides of a branch.</span></li>
+      <li><span class="k">Connection</span><span>The Medic/Captain branch decides which exploits are live; revives are repeatable without limit.</span></li>
+      <li><span class="k">Connection</span><span>Losing the player's own operator is a missing game-over condition; Open the Cages depends on escort rules that don't exist.</span></li>
+    </ul>
+  </div>
+
+  <!-- Business Analyst -->
+  <div class="panel" role="tabpanel" id="p-ba" aria-labelledby="t-ba">
+    <h3 class="rev">Business Analyst</h3>
+    <p class="sub">Round 1 findings</p>
+    <div class="finding"><div><span class="stamp blocking">Blocking</span></div><div><p class="ttl">1. No scope boundary between "the game" and "the eight-week deliverable".</p><p>About 16 cycles cannot build or finish about 22 authored missions plus everything else. No MVP, priority list or inventory.</p><p class="r2">Round 2: kept and widened with FL's point on Jim's review time.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">2. The character creator works against the document's own top production risk.</p><p>Every outfit, kit piece and helmet must fit every body type, for choices the document calls independent of combat.</p><p class="r2">Round 2: held at <span class="stamp major">Major</span> against FL's MINOR.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">3. Branching and generated side missions are costly, and their testing is unresolved.</p><p>Each player sees half of 8 branch missions; generated missions can't be checked if assembled at runtime.</p><p class="r2">Round 2: reframed as a 16-path balance matrix; defers generator detail to FL.</p></div></div>
+    <div class="finding"><div><span class="stamp major">Major</span></div><div><p class="ttl">4. No market positioning, competitors or commercial frame.</p><p>The "valid attacks hit" hook isn't compared with Gears Tactics, Mario + Rabbids or Into the Breach; the structure follows XCOM 2.</p><p class="r2">Round 2: a differentiator exists but is unused; fix the failure rule.</p></div></div>
+    <div class="finding"><div><span class="stamp minor">Minor</span></div><div><p class="ttl">5. Two documents for two audiences.</p><p>Sections 1–6 are a game design; 7–8 are an AI-agent pipeline proposal, loosely linked. No harness for the Balance and Testing agents.</p><p class="r2">Round 2: split. Framing stays <span class="stamp minor">Minor</span>; missing harness upgraded to <span class="stamp major">Major</span>.</p></div></div>
+    <p class="sub">Round 2 — Cross-examination</p>
+    <ul class="xexam">
+      <li><span class="k">vs Feasibility</span><span>Customization is MAJOR, not MINOR: it multiplies the stated top constraint.</span></li>
+      <li><span class="k">vs Feasibility</span><span>No side-mission type in the week-8 slice; Act 1 plus the HQ loop through menus.</span></li>
+      <li><span class="k">vs Systems / QA</span><span>Capping the side-mission pool makes a runtime generator overbuilt.</span></li>
+      <li><span class="k">vs Narrative / PP</span><span>Each proposed addition increases scope; the cheapest fix is subtraction.</span></li>
+      <li><span class="k">Connection</span><span>The wipe exploit sinks the only hook against XCOM 2; the insider resistance is the unused positioning.</span></li>
+      <li><span class="k">Connection</span><span>Every reviewer's rule gaps land on a test harness that doesn't exist.</span></li>
+      <li><span class="k">Connection</span><span>Opening HQ functions in stages fixes onboarding and scope together.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5. FOOTER -->
+<footer>
+  <p class="method">Six isolated agent contexts · parallel review · cross-examination · moderated synthesis</p>
+  <p>Source: <a href="https://github.com/icosa-studios/ringwars-coursework/blob/0ddab88b645e07ed0874157bd81080bcc701a8b8/GDD.md">Ring Wars Game Design Document</a> (revision 0ddab88), reviewed 2026-10-19.</p>
+</footer>
+
+</div>
+<script>
+  (function () {
+    document.documentElement.classList.add('js');
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { select(t); });
+      t.addEventListener('keydown', function (e) {
+        var n = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (n) { var next = tabs[(i + n + tabs.length) % tabs.length]; select(next); next.focus(); }
+      });
+    });
+    select(tabs[0]);
+  })();
+</script>
+</body>
+</html>
