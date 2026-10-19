@@ -6,7 +6,8 @@ Jim Powell's coursework for **Multi Agent AI for Game Development**, taught by J
 
 ## Assignments
 
-- [Game Design Document](GDD.md)
+- [Full Game Design Document](GDD.md)
+- Assignment 01: [Class GDD](GDD-Class.md) · [PDF](GDD-Class.pdf)
 
 ## AI disclosure
 
