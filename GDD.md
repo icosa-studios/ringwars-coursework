@@ -365,7 +365,7 @@ The campaign develops from escape and an initial foothold into a sustained resis
 | Drive them back | Open routes, remove supporting fire, and dismantle the garrison's remaining positions | Keep the Crossing; Silence the Guns; Empty Their Shelves; Break the Line |
 | The capital | Enter the defended city, take heavy equipment, open headquarters access, and defeat occupation command | Under the Wall; Keys to the Giants; Break the Bastion; Their Last Order |
 
-The player's contribution is expressed in the targets the squad reaches and the opportunities those successes open. The larger resistance benefits from the squad's operations, while the player's decisions remain grounded in the people and equipment they command.
+The player's contribution is expressed in the targets the squad reaches and the opportunities those successes open. The larger resistance benefits from the squad's operations, while the player's decisions remain grounded in the people and equipment they command. [Act characters](#act-characters) give each stage of that advance a personal relationship.
 
 #### Mission choices
 
@@ -410,6 +410,10 @@ The progression interface presents learned and available capabilities directly. 
 
 Specialization and breadth serve different purposes. Deep training makes an operator more capable within a chosen role. Training across kits provides more preparation options as objectives and available equipment change. Story rewards provide a foundation across the roster, while additional successful operations and optional objectives support further development.
 
+#### Operator achievements and ranks
+
+Operators earn individual achievements and advance through ranks over the campaign. Achievements recognize their accomplishments, while ranks make their growth visible alongside learned kit abilities. These records give familiar operators a service history that the player can follow as the resistance advances.
+
 #### Campaign discovery
 
 New equipment enters the player's experience through the campaign. A weapons raid introduces its captured kit. A rescued team opens a related support capability. A logistical success provides equipment or resources with a clear place in the resistance's work.
@@ -450,9 +454,28 @@ The campaign then follows the local struggle: capture supplies, recover people, 
 
 The final movement brings those capabilities into the capital. Access, captured machinery, and the defeat of command resolve the struggle for Marendel through the same kind of targeted action that began it.
 
+### Act characters
+
+Each Act introduces a principal resistance character. The squad outgrows its Act I foothold and moves into new operational areas as the war advances. Changes of location bring new responsibilities and relationships, while earlier allies remain part of the campaign.
+
+| Act | New character | Relationship and story beat |
+|---|---|---|
+| I — A foothold | The player's handler | Arranges the prison breakout and guides the opening operations. The relationship begins with the person who gets the player out alive and helps the squad establish its first base. |
+| II — Build the resistance | A gruff man who dislikes the player | The squad works with someone whose cooperation matters even though he does not like them. Resource raids, rescues, and securing the next route develop that working relationship as the resistance grows beyond its initial foothold. |
+| III — Drive them back | A businesslike man who likes the player | Clear objectives and a positive working relationship carry the push toward the capital. His direct approach gives the squad a trusted collaborator through the operations that force the Directorate back. |
+| IV — The capital | A woman who is Nova's CEO and the resistance leader | The player meets the leader behind the resistance and fights alongside her in the campaign's final movement. The relationships built through the earlier Acts converge around the assault on Directorate command. |
+
+### Act IV and the final assault
+
+Act IV has **four parts**, each centered on one of the Act characters. Each character brings **2–3 NPC operators** from their own squad to assist. The closing missions bring several of those allied squads together, letting the player fight beside people whose voices and priorities they already know.
+
+In **Their Last Order**, the final mission, the assault team consists of the player's **4 operators** and the **four principal characters**. The resistance leader dies, and at least one of the other three characters also dies during the mission. The player chooses a course of action that dooms one of those other characters; the decision is part of how the assault succeeds.
+
+Victory frees Marendel at a personal cost. The campaign records the player's chosen course and the character it doomed. Those consequences carry into a possible DLC continuation.
+
 ### Story delivery
 
-Mission openings establish the immediate situation, the job, and the equipment the squad is using. Briefings and objective markers keep the player's current purpose clear. Dialogue and directed shots give important moments a point of view while gameplay carries the choices that follow.
+Mission openings establish the immediate situation, the job, and the equipment the squad is using. The Act characters carry briefings, exchanges, and reactions to mission outcomes, giving the resistance recognizable voices and relationships. Objective markers keep the player's current purpose clear. Dialogue and directed shots give important moments a point of view while gameplay carries the choices that follow.
 
 The environment reinforces the campaign's progress. Early operations move through utilitarian facilities occupied by the Directorate. Later locations bring the squad closer to the capital's wealth and ornament. The change in setting makes the campaign's advance visible.
 
